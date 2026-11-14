@@ -1,0 +1,13 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/lint_bunny.gd" id="1_bunny"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_bunny"]
+size = Vector2(40, 34)
+
+[node name="LintBunny" type="CharacterBody2D"]
+script = ExtResource("1_bunny")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -17)
+shape = SubResource("RectangleShape2D_bunny")

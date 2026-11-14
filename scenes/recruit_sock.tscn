@@ -1,0 +1,13 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/recruit_sock.gd" id="1_recruit"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_recruit"]
+size = Vector2(30, 40)
+
+[node name="RecruitSock" type="CharacterBody2D"]
+script = ExtResource("1_recruit")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -20)
+shape = SubResource("RectangleShape2D_recruit")

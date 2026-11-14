@@ -1,0 +1,3 @@
+# Godot creates this folder by itself (import cache). Never commit it.
+.godot/
+*.tmp
