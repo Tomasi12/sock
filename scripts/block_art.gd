@@ -9,14 +9,16 @@ const OUTLINE := Color(0.16, 0.11, 0.22)
 var size := Vector2(100, 100)
 var style := "floor"
 var tint := Color("fd79a8") # colour of giant buttons
+var floor_color := Color("7f8fa6") # each world has its own colours
+var wall_color := Color("a4b0be")
 
 
 func _draw() -> void:
 	match style:
 		"floor":
-			_draw_steel(Color("7f8fa6"))
+			_draw_steel(floor_color)
 		"pit":
-			_draw_steel(Color("57606f"))
+			_draw_steel(floor_color.darkened(0.3))
 		"drum":
 			_draw_drum()
 		"basket":
@@ -39,7 +41,7 @@ func _draw_steel(col: Color) -> void:
 
 
 func _draw_drum() -> void:
-	var col := Color("a4b0be")
+	var col := wall_color
 	draw_rect(Rect2(Vector2.ZERO, size), col)
 	# vertical ribs
 	for x in range(30, int(size.x), 70):

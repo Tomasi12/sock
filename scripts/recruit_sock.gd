@@ -36,6 +36,7 @@ var player = null
 var body: Node2D
 var dir := 1.0
 var climbed := false  # true if this sock is stuck on a wall as a step
+var ever_recruited := false
 var _timer := 0.0
 var _hop_time := 0.0
 var _climb_target_y := 0.0
@@ -73,10 +74,25 @@ func is_deployed() -> bool:
 	return state in [State.THROWN, State.WALK, State.CLIMB, State.PLACED]
 
 
+# Is this sock busy doing its job right now? (Enemies and bosses check this
+# to know if a sock is flying or marching at them.)
+func is_attacking() -> bool:
+	return state in [State.THROWN, State.WALK, State.CLIMB]
+
+
+# The whistle (E) calls back socks we sent away, and also socks that were
+# knocked out of the army. Socks that never joined us do not listen.
+func can_be_whistled() -> bool:
+	return is_deployed() or (state == State.IDLE and ever_recruited)
+
+
 # layer = "what I am", mask = "what I bump into"
 func _set_collision(layer: int, mask: int) -> void:
 	collision_layer = layer
 	collision_mask = mask
+	# Socks stuck on a wall are "one-way" platforms: you can jump up through
+	# them and land on top. Every other sock is fully solid.
+	$CollisionShape2D.one_way_collision = climbed and layer == LAYER_PROPS
 
 
 func _physics_process(delta: float) -> void:
@@ -101,9 +117,10 @@ func _physics_process(delta: float) -> void:
 # ---------------- States ----------------
 
 func _state_idle(delta: float) -> void:
-	_apply_gravity(delta)
-	velocity.x = move_toward(velocity.x, 0.0, 600.0 * delta)
-	move_and_slide()
+	if global_position.y < 1200.0: # (a sock that fell out of the world just waits for a whistle)
+		_apply_gravity(delta)
+		velocity.x = move_toward(velocity.x, 0.0, 600.0 * delta)
+		move_and_slide()
 	body.rotation = sin(_hop_time * 2.5) * 0.08 # sad little sway
 	if _dizzy_time > 0.0:
 		_dizzy_time -= delta
@@ -148,6 +165,7 @@ func _state_flying(delta: float) -> void:
 			velocity = Vector2.ZERO
 		elif kind == SockTypes.Kind.GYM:
 			_release_stink()
+			Sfx.play("stink")
 			_place()
 		elif kind == SockTypes.Kind.TOE:
 			# Landed on the floor: scurry forward and look for a wall.
@@ -211,6 +229,7 @@ func _state_climb(delta: float) -> void:
 func join(hero) -> void:
 	player = hero
 	state = State.FOLLOW
+	ever_recruited = true
 	climbed = false
 	_set_collision(0, 0) # followers don't bump into anything
 	velocity = Vector2.ZERO
@@ -237,6 +256,8 @@ func command(direction: float, from_pos: Vector2) -> void:
 
 func knock_away(direction: float) -> void:
 	state = State.KNOCKED
+	climbed = false
+	body.position = Vector2.ZERO
 	dir = direction
 	_set_collision(0, LAYER_TERRAIN | LAYER_PROPS)
 	velocity = Vector2(direction * 280.0, -480.0)

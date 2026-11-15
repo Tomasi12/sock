@@ -11,6 +11,13 @@ static var _soft_circle: Texture2D
 static var _bubble: Texture2D
 
 
+# Forget the textures when the game closes (keeps Godot from warning about
+# things left in memory).
+static func clear_cache() -> void:
+	_soft_circle = null
+	_bubble = null
+
+
 # A white dot that fades out at the edges. Used by most particles.
 static func soft_circle() -> Texture2D:
 	if _soft_circle == null:

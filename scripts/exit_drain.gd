@@ -8,7 +8,10 @@ const Art = preload("res://scripts/art.gd")
 const OUTLINE := Color(0.16, 0.11, 0.22)
 
 var player_inside := false
+# A boss level keeps the drain locked until the boss is defeated.
+var locked := false
 var _t := 0.0
+var _foam: CPUParticles2D
 
 
 func _ready() -> void:
@@ -44,6 +47,7 @@ func _ready() -> void:
 	foam.color_ramp = Art.fade_gradient()
 	foam.position = Vector2(0, -6)
 	add_child(foam)
+	_foam = foam
 
 
 func _on_body_entered(body: Node2D) -> void:
@@ -57,11 +61,21 @@ func _on_body_exited(_body: Node2D) -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
+	_foam.emitting = not locked
 	queue_redraw()
 
 
 func _draw() -> void:
 	var glow := 0.5 + 0.5 * sin(_t * 3.0)
+	if locked:
+		# closed with a heavy lid: no light, no glow
+		var lid := Art.ellipse(Vector2(0, -4), 60, 15, 32)
+		draw_colored_polygon(lid, Color("636e72"))
+		var lid_rim := lid.duplicate()
+		lid_rim.append(lid[0])
+		draw_polyline(lid_rim, OUTLINE, 3.0, true)
+		draw_string(ThemeDB.fallback_font, Vector2(-70, -40), "LOCKED", HORIZONTAL_ALIGNMENT_CENTER, 140, 22, Color(1, 1, 1, 0.6))
+		return
 	# beam of light
 	draw_colored_polygon(PackedVector2Array([Vector2(-45, 0), Vector2(45, 0), Vector2(85, -260), Vector2(-85, -260)]),
 		Color(0.5, 1.0, 0.95, 0.10 + glow * 0.08))

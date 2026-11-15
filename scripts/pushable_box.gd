@@ -9,10 +9,12 @@ const GRAVITY := 1500.0
 const MAX_PUSH_SPEED := 150.0
 
 var _push := 0.0
+var _start_y := 0.0
 
 
 func _ready() -> void:
 	add_to_group("pushables")
+	_start_y = position.y
 	z_index = 2
 	collision_layer = 16  # layer 5 = props: the hero can stand on it
 	collision_mask = 1    # it only bumps into terrain
@@ -28,7 +30,7 @@ func _ready() -> void:
 # Used by the hero's "smart command": once the box fell into the puddle,
 # there is no point sending more Wool Socks at it.
 func is_useful() -> bool:
-	return global_position.y < 620.0
+	return global_position.y < _start_y + 20.0
 
 
 # Wool Socks call this every frame while they push.

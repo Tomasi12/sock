@@ -1,0 +1,516 @@
+# levels.gd
+# THE WHOLE CAMPAIGN: 3 worlds, each with 5 levels and a boss.
+# Every level is a short list of pieces (see level_builder.gd).
+# Want a new level? Copy one function, change the pieces, and add it to build_all().
+extends RefCounted
+
+const Builder = preload("res://scripts/level_builder.gd")
+const SockTypes = preload("res://scripts/sock_types.gd")
+
+const W := SockTypes.Kind.WOOL
+const T := SockTypes.Kind.TOE
+const G := SockTypes.Kind.GYM
+
+
+static func build_all() -> Array:
+	return [
+		_1_1(), _1_2(), _1_3(), _1_4(), _1_5(), _1_boss(),
+		_2_1(), _2_2(), _2_3(), _2_4(), _2_5(), _2_boss(),
+		_3_1(), _3_2(), _3_3(), _3_4(), _3_5(), _3_boss(),
+	]
+
+
+# =====================================================================
+# WORLD 1: THE DRUM  (learn the basics, meet Lint Bunnies and Snappers)
+# =====================================================================
+
+static func _1_1() -> Dictionary:
+	var b := Builder.new("1-1", "Spin Cycle", 1)
+	b.d["hint"] = "Lonely socks need you! Walk close to one and press E."
+	b.start()
+	b.tip("Lonely socks! Walk close and press E to recruit.")
+	b.socks([W, G])
+	b.tip("Too heavy for you! Stand near it and press Q: Wool Socks PUSH.")
+	b.box_puddle()
+	b.flat(200)
+	b.tip("Lint Bunny! Press Q: Gym Socks make a STINK cloud. Then JUMP on the dizzy bunny!")
+	b.bunnies(1, 450)
+	b.buttons([95, 175], T)
+	b.basket(T)
+	b.tip("Huge wall! Toe Socks CLIMB walls (Q). Or throw socks to build a pile!")
+	b.flat(150)
+	b.wall(200)
+	b.sock(G)
+	b.tip("Left socks behind? Press E with no sock near you to WHISTLE them back.")
+	b.flat(250)
+	b.drop(200)
+	b.bunnies(1, 350)
+	b.drain()
+	return b.finish(3)
+
+
+static func _1_2() -> Dictionary:
+	var b := Builder.new("1-2", "Bubble Trouble", 1)
+	b.d["hint"] = "Tip: hold Q to aim, let go to send the sock."
+	b.start()
+	b.sock(T)
+	b.tip("A small puddle: just jump it! (Space)")
+	b.puddle(150)
+	b.flat(150)
+	b.tip("Too high to jump? Press Q to send a sock, then jump on it!")
+	b.wall(160)
+	b.sock(W)
+	b.bunnies(2, 600)
+	b.basket(G)
+	b.gap(150)
+	b.flat(100)
+	b.box_puddle()
+	b.flat(150)
+	b.buttons([95, 180], T)
+	b.wall(200)
+	b.bunnies(1, 400)
+	b.sock(G)
+	b.drop(200)
+	b.puddle(160)
+	b.flat(100)
+	b.drop(160)
+	b.drain()
+	return b.finish(3)
+
+
+static func _1_3() -> Dictionary:
+	var b := Builder.new("1-3", "Lint Storm", 1)
+	b.d["hint"] = "So many bunnies! Stink them, then stomp them."
+	b.start()
+	b.socks([G, W])
+	b.tip("A stunned bunny can be STOMPED. Jump on its head to get rid of it for good.")
+	b.bunnies(2, 700)
+	b.sock(G)
+	b.gap(160)
+	b.flat(120)
+	b.bunnies(3, 800)
+	b.buttons([95, 175, 255], T, true)
+	b.basket(T)
+	b.puddle(170)
+	b.flat(120)
+	b.sock(T)
+	b.tip("A REALLY big wall. One Toe Sock is not enough: send two!")
+	b.flat(100)
+	b.wall(280)
+	b.bunnies(2, 500)
+	b.box_puddle()
+	b.flat(150)
+	b.drop(280)
+	b.bunnies(1, 350)
+	b.drain()
+	return b.finish(4)
+
+
+static func _1_4() -> Dictionary:
+	var b := Builder.new("1-4", "Clothesline Canyon", 1)
+	b.d["hint"] = "Look up! Something is hanging on the clothesline..."
+	b.start()
+	b.sock(T)
+	b.tip("Clothespin Snappers drop when you walk under them. STOP when one wiggles, then jump on it after the SNAP!")
+	b.snappers(1, 400)
+	b.sock(G)
+	b.snappers(2, 600)
+	b.gap(160)
+	b.flat(100)
+	b.wall(100)
+	b.sock(W)
+	b.snappers(1, 300)
+	b.bunnies(1, 400)
+	b.box_puddle()
+	b.flat(120)
+	b.buttons([95, 180], T)
+	b.snappers(2, 500)
+	b.wall(200)
+	b.sock(G)
+	b.gap(170)
+	b.flat(100)
+	b.bunnies(2, 600)
+	b.drop(300)
+	b.snappers(1, 300)
+	b.drain()
+	return b.finish(3)
+
+
+static func _1_5() -> Dictionary:
+	var b := Builder.new("1-5", "The Fluff Nest", 1)
+	b.d["hint"] = "The bunnies are getting nervous. Their boss must be close."
+	b.start()
+	b.socks([W, G])
+	b.bunnies(2, 500)
+	b.snappers(2, 500)
+	b.box_puddle()
+	b.flat(100)
+	b.gap(150)
+	b.flat(100)
+	b.sock(T)
+	b.wall(160)
+	b.bunnies(3, 800)
+	b.basket(T)
+	b.wall(280)
+	b.snappers(1, 300)
+	b.sock(G)
+	b.puddle(170)
+	b.flat(100)
+	b.bunnies(2, 500)
+	b.box_puddle()
+	b.flat(120)
+	b.sock(W)
+	b.drop(440)
+	b.bunnies(2, 500)
+	b.drain()
+	return b.finish(4)
+
+
+static func _1_boss() -> Dictionary:
+	var b := Builder.new("1-B", "BOSS: Big Fluff", 1)
+	b.d["hint"] = "BIG FLUFF blocks the drain! Stink it, then jump on its head. Three times!"
+	b.start(1700)
+	b.put_sock(G, Vector2(240, 600))
+	b.put_sock(G, Vector2(340, 600))
+	b.put_sock(W, Vector2(440, 600))
+	b.put_sock(T, Vector2(540, 600))
+	b.put_button(620, 100)
+	b.put_button(1000, 100)
+	b.d["signs"].append({"pos": Vector2(400, 380), "text": "Q sends a Gym Sock. When Big Fluff goes flat and dizzy, JUMP on it! Press E to whistle your socks back."})
+	b.d["boss"] = {"type": "boss_fluff", "pos": Vector2(1250, 600)}
+	b.d["drain"] = Vector2(1520, 600)
+	return b.finish(3)
+
+
+# =====================================================================
+# WORLD 2: IRONING BOARD PLAINS  (Static Sparks and Hot Irons)
+# =====================================================================
+
+static func _2_1() -> Dictionary:
+	var b := Builder.new("2-1", "Static Shock", 2)
+	b.d["hint"] = "The air is crackling. Keep your Wool Sock close!"
+	b.start()
+	b.sock(W)
+	b.tip("Static Sparks ZAP socks. Only a Wool Sock can soak up the static. Send it with Q (press 1 to pick Wool).")
+	b.sparks(1, 400, "h")
+	b.sock(T)
+	b.tip("These Sparks bob up and down. Run under them at the right time!")
+	b.sparks(2, 500, "v")
+	b.gap(150)
+	b.flat(100)
+	b.sock(G)
+	b.bunnies(2, 500)
+	b.sparks(1, 350, "h")
+	b.wall(200)
+	b.sparks(2, 500, "v")
+	b.sock(W)
+	b.box_puddle()
+	b.flat(120)
+	b.buttons([95, 180], T)
+	b.sparks(2, 500, "h")
+	b.drop(200)
+	b.drain()
+	return b.finish(3)
+
+
+static func _2_2() -> Dictionary:
+	var b := Builder.new("2-2", "Hot Stuff", 2)
+	b.d["hint"] = "Do you smell something burning?"
+	b.start()
+	b.sock(T)
+	b.tip("Hot Irons charge at you and nothing stops them... except WATER. Stay on this side of the puddle and let it come!")
+	b.iron_trap()
+	b.sock(G)
+	b.bunnies(1, 400)
+	b.wall(160)
+	b.iron_trap()
+	b.sock(W)
+	b.snappers(2, 500)
+	b.box_puddle()
+	b.flat(100)
+	b.sparks(1, 350, "h")
+	b.basket(T)
+	b.wall(200)
+	b.iron_trap()
+	b.sock(G)
+	b.drop(360)
+	b.bunnies(1, 350)
+	b.drain()
+	return b.finish(3)
+
+
+static func _2_3() -> Dictionary:
+	var b := Builder.new("2-3", "Wrinkle Ridge", 2)
+	b.d["hint"] = "Up, up, up the ridge!"
+	b.start()
+	b.socks([W, T])
+	b.sparks(2, 500, "v")
+	b.wall(200)
+	b.iron_trap()
+	b.sock(G)
+	b.bunnies(2, 500)
+	b.gap(170)
+	b.flat(100)
+	b.snappers(2, 500)
+	b.sock(T)
+	b.wall(280)
+	b.sparks(1, 350, "h")
+	b.box_puddle()
+	b.flat(100)
+	b.sock(G)
+	b.iron_trap()
+	b.drop(480)
+	b.sock(W)
+	b.bunnies(3, 700)
+	b.drain()
+	return b.finish(4)
+
+
+static func _2_4() -> Dictionary:
+	var b := Builder.new("2-4", "Steam Works", 2)
+	b.d["hint"] = "Hiss... hiss... the irons are everywhere."
+	b.start()
+	b.socks([G, W])
+	b.iron_trap()
+	b.sparks(2, 450, "h")
+	b.buttons([95, 180, 265], T, true)
+	b.snappers(3, 700)
+	b.gap(160)
+	b.flat(100)
+	b.box_puddle()
+	b.flat(100)
+	b.iron_trap()
+	b.sock(G)
+	b.wall(160)
+	b.bunnies(3, 700)
+	b.basket(T)
+	b.wall(280)
+	b.sparks(3, 600, "v")
+	b.sock(W)
+	b.drop(440)
+	b.iron_trap()
+	b.drain()
+	return b.finish(4)
+
+
+static func _2_5() -> Dictionary:
+	var b := Builder.new("2-5", "Pressing Matters", 2)
+	b.d["hint"] = "The Iron Baron's castle is just ahead."
+	b.start()
+	b.socks([W, T, G])
+	b.iron_trap()
+	b.bunnies(2, 500)
+	b.sparks(2, 500, "h")
+	b.wall(200)
+	b.snappers(2, 500)
+	b.iron_trap()
+	b.basket(T)
+	b.gap(170)
+	b.flat(100)
+	b.box_puddle()
+	b.flat(100)
+	b.sock(G)
+	b.sparks(2, 450, "v")
+	b.wall(280)
+	b.bunnies(3, 700)
+	b.sock(W)
+	b.iron_trap()
+	b.buttons([95, 180], T)
+	b.snappers(2, 450)
+	b.drop(480)
+	b.sparks(1, 350, "h")
+	b.drain()
+	return b.finish(5)
+
+
+static func _2_boss() -> Dictionary:
+	var b := Builder.new("2-B", "BOSS: The Iron Baron", 2)
+	b.d["hint"] = "THE IRON BARON! Dodge his charge, then throw socks at him while he is dizzy."
+	b.start(1700)
+	b.put_sock(W, Vector2(560, 600))
+	b.put_sock(T, Vector2(660, 600))
+	b.put_sock(T, Vector2(760, 600))
+	b.put_sock(G, Vector2(860, 600))
+	b.put_button(230, 105)
+	b.put_button(410, 190)
+	b.put_button(1170, 190)
+	b.put_button(1350, 105)
+	b.d["signs"].append({"pos": Vector2(850, 330), "text": "Jump on the buttons when he charges. When he CRASHES into a wall, run close and press Q to throw a sock at him!"})
+	b.d["boss"] = {"type": "boss_iron", "pos": Vector2(1450, 600)}
+	b.d["drain"] = Vector2(850, 600)
+	return b.finish(3)
+
+
+# =====================================================================
+# WORLD 3: THE DRYER DEPTHS  (Moths, and everything together)
+# =====================================================================
+
+static func _3_1() -> Dictionary:
+	var b := Builder.new("3-1", "Moth Madness", 3)
+	b.d["hint"] = "It is hot and dark in here. Something is fluttering..."
+	b.start()
+	b.sock(G)
+	b.tip("Moths swoop down and chew your socks! They HATE the smell of Gym Socks (press 3 to pick Gym, then Q). You can also stomp them.")
+	b.moths(1, 500)
+	b.sock(T)
+	b.moths(1, 400)
+	b.bunnies(1, 400)
+	b.sock(W)
+	b.box_puddle()
+	b.flat(100)
+	b.moths(2, 600)
+	b.wall(200)
+	b.sock(G)
+	b.snappers(2, 500)
+	b.iron_trap()
+	b.basket(T)
+	b.moths(1, 400)
+	b.sparks(1, 350, "h")
+	b.sock(G)
+	b.drop(200)
+	b.drain()
+	return b.finish(4)
+
+
+static func _3_2() -> Dictionary:
+	var b := Builder.new("3-2", "Hot Air", 3)
+	b.d["hint"] = "The walls are getting taller. Collect every Toe Sock!"
+	b.start()
+	b.socks([W, T])
+	b.sparks(2, 500, "v")
+	b.moths(1, 450)
+	b.iron_trap()
+	b.sock(T)
+	b.bunnies(2, 500)
+	b.basket(T)
+	b.tip("The biggest wall yet. You need THREE Toe Socks!")
+	b.flat(100)
+	b.wall(360)
+	b.sock(G)
+	b.moths(2, 600)
+	b.gap(170)
+	b.flat(100)
+	b.snappers(2, 500)
+	b.box_puddle()
+	b.flat(100)
+	b.sock(G)
+	b.iron_trap()
+	b.drop(360)
+	b.bunnies(2, 500)
+	b.drain()
+	return b.finish(4)
+
+
+static func _3_3() -> Dictionary:
+	var b := Builder.new("3-3", "Tumble Tunnel", 3)
+	b.d["hint"] = "Round and round the tunnel goes."
+	b.start()
+	b.socks([W, G])
+	b.iron_trap()
+	b.moths(1, 450)
+	b.sparks(2, 500, "h")
+	b.buttons([95, 180, 265], T)
+	b.snappers(3, 700)
+	b.box_puddle()
+	b.flat(100)
+	b.sock(T)
+	b.wall(280)
+	b.moths(2, 600)
+	b.bunnies(3, 700)
+	b.sock(G)
+	b.gap(170)
+	b.flat(100)
+	b.iron_trap()
+	b.sock(W)
+	b.sparks(3, 600, "v")
+	b.basket(T)
+	b.wall(200)
+	b.snappers(2, 450)
+	b.box_puddle()
+	b.flat(100)
+	b.drop(480)
+	b.moths(1, 400)
+	b.drain()
+	return b.finish(5)
+
+
+static func _3_4() -> Dictionary:
+	var b := Builder.new("3-4", "The Lint Trap", 3)
+	b.d["hint"] = "This is where the Dryer King keeps his prisoners."
+	b.start()
+	b.socks([G, G])
+	b.moths(2, 600)
+	b.bunnies(3, 700)
+	b.sock(W)
+	b.sparks(2, 450, "h")
+	b.iron_trap()
+	b.socks([T, T])
+	b.snappers(2, 500)
+	b.gap(170)
+	b.flat(100)
+	b.basket(T)
+	b.wall(360)
+	b.iron_trap()
+	b.sparks(3, 600, "v")
+	b.box_puddle()
+	b.flat(100)
+	b.sock(W)
+	b.moths(2, 600)
+	b.snappers(3, 650)
+	b.drop(360)
+	b.iron_trap()
+	b.bunnies(2, 500)
+	b.drain()
+	return b.finish(5)
+
+
+static func _3_5() -> Dictionary:
+	var b := Builder.new("3-5", "The Throne Road", 3)
+	b.d["hint"] = "The last road. The Dryer King is waiting at the end."
+	b.start()
+	b.socks([W, T, G])
+	b.iron_trap()
+	b.moths(2, 600)
+	b.sparks(2, 500, "h")
+	b.wall(200)
+	b.snappers(3, 700)
+	b.box_puddle()
+	b.flat(100)
+	b.bunnies(3, 700)
+	b.socks([T, G])
+	b.gap(170)
+	b.flat(100)
+	b.iron_trap()
+	b.sparks(3, 600, "v")
+	b.wall(280)
+	b.moths(2, 600)
+	b.sock(W)
+	b.iron_trap()
+	b.basket(T)
+	b.snappers(2, 450)
+	b.buttons([95, 180], G)
+	b.box_puddle()
+	b.flat(100)
+	b.drop(480)
+	b.sparks(2, 450, "h")
+	b.bunnies(2, 500)
+	b.moths(1, 450)
+	b.drain()
+	return b.finish(6)
+
+
+static func _3_boss() -> Dictionary:
+	var b := Builder.new("3-B", "FINAL BOSS: The Dryer King", 3)
+	b.d["hint"] = "THE DRYER KING! Wait until his door opens, then throw your socks inside!"
+	b.start(1700)
+	b.put_sock(W, Vector2(240, 600))
+	b.put_sock(T, Vector2(340, 600))
+	b.put_sock(G, Vector2(440, 600))
+	b.put_sock(T, Vector2(540, 600))
+	b.put_sock(G, Vector2(640, 600))
+	b.put_button(420, 100)
+	b.put_button(800, 100)
+	b.d["signs"].append({"pos": Vector2(600, 330), "text": "He spits bunnies, then blows HOT AIR (hold D to push back!), then his door OPENS. Run close and press Q to stuff a sock inside!"})
+	b.d["boss"] = {"type": "boss_dryer", "pos": Vector2(1540, 600)}
+	b.d["drain"] = Vector2(1000, 600)
+	return b.finish(4)

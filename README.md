@@ -1,13 +1,16 @@
 # The Last Sock
 
-A funny 2D side-view prototype made with **Godot 4** and **GDScript**.
+A funny 2D side-view game made with **Godot 4** and **GDScript**.
 
 > Every sock you ever lost is still alive. And they are angry.
 
 The washing machine is a portal to the Sock Dimension. You are a brave single sock
 leading a rebellion of mismatched socks against the evil **Dryer King**.
 
-There are no image or sound files: everything is drawn with code.
+There are no image or sound files: all art and all sounds are made with code.
+
+**The game:** 3 worlds, 18 stages (15 levels + 3 bosses), 5 kinds of enemies, star ratings
+and saved progress.
 
 ---
 
@@ -26,99 +29,143 @@ The first time, Godot spends a few seconds "importing" the project. That's norma
 |---|---|
 | A / D or ← / → | Move |
 | Space (or W / ↑) | Jump. Hold it for a higher jump. |
-| E | Recruit a lonely sock near you. If none is near, **whistle**: every sock you sent away comes back. |
-| Q | Send a sock to do its job |
-| Esc | Back to the menu |
+| E | Recruit a lonely sock near you. If none is near, **whistle**: every sock that was in your army comes back. |
+| Q | **Hold** to aim (a line shows where the sock goes), **let go** to send it |
+| Tab, or 1 / 2 / 3 | Pick which sock Q sends: 1 = Wool, 2 = Toe, 3 = Gym. Press the same number again for AUTO. |
+| R | Restart the level |
+| Esc | Back to the level map |
+| M | Sound on / off |
 
 ## The socks
 
-| Sock | Look | Special job (press Q) |
+| Sock | Look | Special job (Q) |
 |---|---|---|
-| **Wool Sock** | red with dots, chunky | Heavy. It marches forward and **pushes** the giant soap box. |
-| **Toe Sock** | purple with rainbow stripes, little toes | **Climbs walls** and sticks as a step. Two of them make a staircase. |
-| **Gym Sock** | white with green stripes | Lands and releases a **stink cloud** that stuns Lint Bunnies. |
+| **Wool Sock** | red with dots, chunky | Marches forward. **Pushes** the giant soap box. **Soaks up Static Sparks.** |
+| **Toe Sock** | purple with rainbow stripes, little toes | **Climbs walls** and sticks as a step. You can jump up through it. |
+| **Gym Sock** | white with green stripes | Lands and makes a **stink cloud**: stuns bunnies and Snappers, defeats Moths. |
 
-Q is a bit smart: if a box is in front of you it sends a Wool Sock, if a Lint Bunny is in
-front it sends a Gym Sock, and if a wall is in front it sends a Toe Sock. Otherwise it sends
-the first sock in your line. Socks you send away become solid blocks, so you can also
-**pile them up** and jump on them.
+On AUTO, Q picks for you: box or Spark ahead → Wool, other enemy ahead → Gym, wall ahead → Toe.
+Socks you send become solid blocks, so you can also **pile them up** and jump on them.
 
-**Goal:** reach the glowing drain with **at least 3 socks** in your army.
+## The enemies and how to beat them
+
+| Enemy | What it does | How to beat it |
+|---|---|---|
+| **Lint Bunny** | Hops left and right. Knocks a sock out of your army. | Stink cloud makes it dizzy, then **jump on it**. |
+| **Clothespin Snapper** | Hangs on a clothesline and drops on you. | **Stop when it wiggles** so it misses. It is stuck in the floor for a moment: jump on it. |
+| **Static Spark** | Floats back and forth and zaps you and thrown socks. | Send a **Wool Sock**. Or jump over it / run under it. |
+| **Hot Iron** | Sees you, heats up and charges. Too hot to stomp. | **Water.** Stand on the other side of a puddle and let it charge in. |
+| **Moth** | Swoops down and chews the last sock in your line. | **Stink cloud** (moths hate Gym Socks), or jump on it. |
+
+## The bosses
+
+| Boss | How to beat it |
+|---|---|
+| **Big Fluff** (World 1) | Stink cloud, then jump on its head. 3 times. It calls little bunnies. |
+| **The Iron Baron** (World 2) | Jump on the buttons so his charge misses. He crashes into the wall and is dizzy: throw a sock at him. 3 times. |
+| **The Dryer King** (World 3) | He spits enemies, blows hot air (hold D to push back), then his door **opens**: throw a sock inside. 5 times. |
+
+## Stars
+
+Each stage gives up to 3 stars: **1** for finishing, **1** for bringing *every* sock to the
+drain, **1** for a *flawless* run (never bonked, chewed or soaked). 54 stars in total.
+Your progress is saved automatically.
 
 ---
 
 ## Project structure
 
 ```
-project.godot        Project settings: name, window size, first scene, KEYBOARD CONTROLS
+project.godot        Project settings: window size, first scene, KEYBOARD CONTROLS, autoloads
 scenes/              The scenes (.tscn). Small on purpose: the scripts build the rest.
-  main_menu.tscn     Title screen
-  intro.tscn         "Every sock you ever lost..." story screen
-  level.tscn         The level
-  player.tscn        The hero sock (body + collision shape)
-  recruit_sock.tscn  A sock you can recruit
-  lint_bunny.tscn    The enemy
-scripts/             All the GDScript code (each file starts with a comment that says what it does)
-  sock_types.gd      Colours, patterns and names of each sock type
-  sock_body.gd       DRAWS a sock: shape, stripes or dots, blinking eyes, squash-and-stretch
-  player.gd          Hero: movement, jumping, recruiting, commanding
+  main_menu.tscn  intro.tscn (story)  world_map.tscn (level select)  level.tscn
+  player.tscn  recruit_sock.tscn
+scripts/
+  game_state.gd      AUTOLOAD. Which level you play, your stars, saving to a file.
+  sfx.gd             AUTOLOAD. All sounds and the music, made with math.
+  levels.gd          THE CAMPAIGN: every level as a short list of pieces.   <-- add levels here
+  level_builder.gd   The level pieces (floor, puddle, wall, enemies...) with fair sizes.
+  level.gd           Builds a level from its description and checks the rules.
+  player.gd          Hero: movement, jumping, recruiting, picking, aiming, sending.
   recruit_sock.gd    Recruit "state machine": idle, follow, thrown, walk, climb, placed...
-  lint_bunny.gd      Enemy that patrols and knocks socks away
-  stink_cloud.gd     The Gym Sock's green cloud
-  pushable_box.gd    The giant SUPER SUDS box
-  level.gd           Builds the whole level and checks the rules (win, puddle, falling)
-  hud.gd             Sock counter, messages, win screen
-  main_menu.gd, intro.gd
-  art.gd, block_art.gd, backdrop.gd, water.gd, soap_bubble.gd, exit_drain.gd   Drawing helpers
-assets/              Only the project icon (all other art is made by code)
-tests/smoke_test.gd  An automatic test that plays the level by itself
+  sock_types.gd      Colours, patterns and names of each sock type.
+  sock_body.gd       DRAWS a sock: shape, pattern, blinking eyes, squash-and-stretch.
+  enemy.gd           Parent script of all enemies: stun, stomp, defeat, hurting the hero.
+  lint_bunny.gd  snapper.gd  spark.gd  iron.gd  moth.gd        The five enemies.
+  boss_fluff.gd  boss_iron.gd  boss_dryer.gd                   The three bosses.
+  hud.gd             Counter, picked sock, timer, messages, boss bar, win screen.
+  world_map.gd  main_menu.gd  intro.gd  star_row.gd            Menus.
+  art.gd  block_art.gd  backdrop.gd  water.gd  soap_bubble.gd  exit_drain.gd
+  stink_cloud.gd  pushable_box.gd  lint_bunny_art.gd  iron_art.gd   Drawing and props.
+assets/              Only the project icon (everything else is made by code).
+tests/               An automatic test that plays the game by itself.
 ```
 
-## What you can learn from each part (step by step)
+## How to add your own level
 
-1. **Input actions** (`project.godot`, `[input]` section). You give each key a *name*
-   (`jump`, `recruit`...). The code only asks `Input.is_action_just_pressed("jump")`, so you
-   can change keys later in *Project → Project Settings → Input Map* without touching code.
-2. **Drawing with code** (`sock_body.gd`). Any `Node2D` can draw itself in a function called
-   `_draw()`, using `draw_colored_polygon`, `draw_circle`, `draw_rect` and `draw_line`. The sock
-   is a polygon (a list of points), with stripes or dots drawn on top and an outline around it.
-3. **Squash and stretch** (`sock_body.gd` → `squash()`). We set `scale` to something squished
-   (for example `Vector2(1.4, 0.65)` when landing). Then a `Tween` with an *elastic* curve
-   brings it back to `Vector2.ONE`. The sock's feet are at (0, 0), so it squashes onto the ground.
-4. **Blinking** (`sock_body.gd`). A `Timer` rings every few seconds, and a Tween moves `blink`
-   from 0 to 1 and back. When `blink` changes, the sock redraws itself.
-5. **Platformer movement** (`player.gd`). `CharacterBody2D` plus `velocity` plus `move_and_slide()`.
-   Gravity adds to `velocity.y` every frame. A jump sets `velocity.y` to a negative number.
+Open `scripts/levels.gd`. A level is a list of pieces, for example:
+
+```gdscript
+static func _my_level() -> Dictionary:
+	var b := Builder.new("4-1", "My First Level", 1)   # id, name, world (1, 2 or 3 = colours)
+	b.start()
+	b.socks([W, T])          # a Wool Sock and a Toe Sock to recruit
+	b.tip("Hello! This is a sign.")
+	b.bunnies(2, 600)        # 2 Lint Bunnies on 600 px of floor
+	b.box_puddle()           # soap box + wide puddle (needs Wool)
+	b.flat(150)
+	b.wall(200)              # a wall (needs a Toe Sock)
+	b.iron_trap()            # small puddle with a Hot Iron behind it
+	b.drain()                # the exit, always last
+	return b.finish(2)       # you must bring 2 socks
+```
+
+Then add `_my_level()` to the list in `build_all()`. Every piece is explained in
+`scripts/level_builder.gd`. The builder checks your design: if you put a wall before the
+player can have a Toe Sock, the automatic test tells you.
+
+## What you can learn from each part
+
+1. **Input actions** (`project.godot`, `[input]`). Each key has a *name* (`jump`, `recruit`...).
+   The code only asks `Input.is_action_just_pressed("jump")`, so you can change keys in
+   *Project → Project Settings → Input Map* without touching code.
+2. **Drawing with code** (`sock_body.gd`). Any `Node2D` can draw itself in `_draw()` with
+   `draw_colored_polygon`, `draw_circle`, `draw_rect` and `draw_line`.
+3. **Squash and stretch** (`sock_body.gd` → `squash()`). Set `scale` to something squished,
+   then a `Tween` with an *elastic* curve brings it back.
+4. **Platformer movement** (`player.gd`). `CharacterBody2D` + `velocity` + `move_and_slide()`.
    *Coyote time* and *jump buffer* make jumping feel fair.
-6. **Followers in a wobbly line** (`player.gd` trail + `recruit_sock.gd` FOLLOW state). The hero
-   remembers where it walked. Each follower moves smoothly (`lerp`) to an older point on that
-   path, so the line copies your jumps.
-7. **State machine** (`recruit_sock.gd`). A sock is always in exactly one state. Each state has
-   its own small function, which keeps the code easy to read.
-8. **Physics layers** (see `[layer_names]` in `project.godot`). Layer 1 = terrain, 2 = player,
-   4 = enemies, 5 = props (placed socks and the box). *Layer* = "what I am", *mask* = "what I bump into".
-9. **Particles** (`art.gd`, `stink_cloud.gd`, `water.gd`, `exit_drain.gd`). `CPUParticles2D` with a
-   tiny texture we generate pixel by pixel (`Image.create_empty` + `set_pixel`).
-10. **Signals** (`player.army_changed`, `water.soaked`, `exit_drain.reached`). One node says
-    "something happened", and another node listens with `.connect(...)`.
+5. **Followers in a wobbly line** (`player.gd` trail + `recruit_sock.gd`). The hero remembers
+   where it walked; each follower moves smoothly (`lerp`) to an older point on that path.
+6. **State machines** (`recruit_sock.gd`, every enemy). A thing is always in exactly one state,
+   and each state has its own small piece of code.
+7. **Inheritance** (`enemy.gd`). All enemies start with `extends "res://scripts/enemy.gd"` and
+   only change what is different. `super()` runs the parent's version of a function.
+8. **Autoloads** (`game_state.gd`, `sfx.gd`). Nodes that live for the whole game and can be
+   used from any script by name.
+9. **Data-driven levels** (`levels.gd`, `level_builder.gd`). A level is *data* (a Dictionary),
+   and one script (`level.gd`) can build any of them.
+10. **Sound from math** (`sfx.gd`). A sound is a list of numbers. Square waves, sine waves and
+    noise are enough for retro effects and a small tune.
+11. **Saving** (`game_state.gd`). `FileAccess` + `JSON` write your stars to `user://`.
+12. **Physics layers** (`[layer_names]` in `project.godot`). *Layer* = "what I am",
+    *mask* = "what I bump into".
 
 ## Automatic test
 
-`tests/smoke_test.gd` loads every scene and plays the level by itself. It walks, jumps,
-recruits, pushes the box, stinks the bunny, gets bonked, climbs the wall, whistles, and wins.
+`tests/smoke_test.tscn` checks the design of all 18 stages, loads each one, then plays a test
+level by itself: recruit, pick, aim, push the box, stink and stomp a bunny, climb a wall on
+Toe Socks with real jumps, beat every enemy, and beat all three bosses.
 To run it from a terminal in this folder:
 
 ```
-godot --headless --fixed-fps 60 -s res://tests/smoke_test.gd
+godot --headless --fixed-fps 60 res://tests/smoke_test.tscn
 ```
 
-It prints `SMOKE TEST: ALL PASSED` when everything works.
+It prints `SMOKE TEST: ALL PASSED` when everything works. Run it after you change something.
 
-## Ideas for the next features
+## Ideas for what to add next
 
-1. **Choose which sock to send.** Press 1 / 2 / 3 or Tab to pick the sock type, and show an
-   aiming arc before you throw.
-2. **The Dryer King boss fight.** A second level where the Dryer King spins, blows hot air that
-   pushes socks back, and must be stopped by stuffing socks into his lint trap.
-3. **Sound and juice.** Add `AudioStreamPlayer` sounds (boing, squish, stink "pfff"), screen
-   shake on hits, and a sock-collection star rating (all 5 socks = 3 stars).
+1. **A fourth world** with a new sock type (for example a Rubber Sock that bounces you high).
+2. **Secret socks** hidden off the main path, and a reward for collecting all 54 stars.
+3. **A pause menu** with volume sliders and key rebinding.

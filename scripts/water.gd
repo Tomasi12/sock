@@ -49,7 +49,7 @@ func _ready() -> void:
 	# can stand on a box or sock in the puddle without getting soaked.
 	var area := Area2D.new()
 	area.collision_layer = 0
-	area.collision_mask = 2 # only the player
+	area.collision_mask = 2 | 8 # the player and enemies
 	var shape := CollisionShape2D.new()
 	var rect := RectangleShape2D.new()
 	rect.size = Vector2(size.x, size.y - 30.0)

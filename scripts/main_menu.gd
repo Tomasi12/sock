@@ -5,7 +5,6 @@ extends Control
 const Art = preload("res://scripts/art.gd")
 const SockBody = preload("res://scripts/sock_body.gd")
 
-const INTRO_SCENE := "res://scenes/intro.tscn"
 
 
 func _ready() -> void:
@@ -82,7 +81,12 @@ func _make_dance(sock: Node2D, delay: float) -> void:
 
 
 func _on_play_pressed() -> void:
-	get_tree().change_scene_to_file(INTRO_SCENE)
+	Sfx.play("click")
+	# The first time, show the story. After that, go straight to the level map.
+	if GameState.seen_intro:
+		get_tree().change_scene_to_file(GameState.MAP_SCENE)
+	else:
+		get_tree().change_scene_to_file(GameState.STORY_SCENE)
 
 
 func _on_quit_pressed() -> void:
