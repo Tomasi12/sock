@@ -62,6 +62,8 @@ var _walk_time := 0.0
 var _invulnerable := 0.0
 var _knockback := 0.0
 var _shake := 0.0
+var _fall_speed := 0.0               # how fast we were falling a moment ago
+var _fall_memory := 0.0              # ...and for how long we still remember it
 var _aim_line: Line2D
 
 
@@ -138,6 +140,14 @@ func _move(delta: float) -> void:
 	# Let go of jump early = smaller jump.
 	if Input.is_action_just_released("jump") and velocity.y < -200.0:
 		velocity.y *= 0.55
+
+	# Remember a fast fall for a moment: landing sets our speed to 0, but an
+	# enemy we just landed on must still know that we came from above.
+	if velocity.y > 50.0:
+		_fall_speed = velocity.y
+		_fall_memory = 0.06
+	else:
+		_fall_memory -= delta
 
 	# move_and_slide() moves the body and stops it at walls and floors.
 	move_and_slide()
@@ -388,8 +398,17 @@ func lose_sock(sock, direction: float, text: String) -> void:
 	_say(text)
 
 
+# How fast are we falling? Enemies ask this to know if we are stomping them.
+# It still answers for a moment after we touch the floor.
+func falling_speed() -> float:
+	if velocity.y > 50.0:
+		return velocity.y
+	return _fall_speed if _fall_memory > 0.0 else 0.0
+
+
 # Jumping on an enemy makes us bounce up.
 func bounce() -> void:
+	_fall_memory = 0.0
 	velocity.y = -480.0
 	_coyote = 0.0
 	body.squash(Vector2(0.75, 1.3))

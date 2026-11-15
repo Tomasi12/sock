@@ -107,8 +107,15 @@ func check_player_touch() -> void:
 
 
 # Is the hero falling onto us from above?
+# We look at where the hero's feet were two frames ago. A fast fall moves
+# 10 pixels per frame, and without this a stomp could be missed just because
+# the hero moved a moment before we checked.
 func is_stomping(p) -> bool:
-	return p.velocity.y > 50.0 and p.global_position.y < global_position.y + hurt_center.y
+	var speed: float = p.falling_speed()
+	if speed <= 50.0:
+		return false
+	var feet_before: float = p.global_position.y - speed * get_physics_process_delta_time() * 2.0
+	return feet_before < global_position.y + hurt_center.y
 
 
 func touch_player(p) -> void:

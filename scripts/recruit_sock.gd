@@ -27,6 +27,7 @@ const LAYER_PROPS := 16
 const THROW_VELOCITY := Vector2(330, -430)
 const WALK_SPEED := 110.0
 const STEP_HEIGHT := 75.0  # distance between two Toe Socks on a wall
+const LOST_Y := 1200.0     # below this a sock has fallen out of the world
 
 # @export makes the value editable in the Godot Inspector.
 @export_enum("Hero", "Wool", "Toe", "Gym") var kind: int = SockTypes.Kind.WOOL
@@ -117,7 +118,7 @@ func _physics_process(delta: float) -> void:
 # ---------------- States ----------------
 
 func _state_idle(delta: float) -> void:
-	if global_position.y < 1200.0: # (a sock that fell out of the world just waits for a whistle)
+	if global_position.y < LOST_Y: # (a sock that fell out of the world just waits for a whistle)
 		_apply_gravity(delta)
 		velocity.x = move_toward(velocity.x, 0.0, 600.0 * delta)
 		move_and_slide()
@@ -152,6 +153,16 @@ func _state_follow(delta: float) -> void:
 func _state_flying(delta: float) -> void:
 	velocity.y = minf(velocity.y + GRAVITY * delta, 1200.0)
 	move_and_slide()
+	if global_position.y > LOST_Y:
+		# Fell out of the world (into a hole). Stop here and wait for a whistle,
+		# so the sock is never lost for good.
+		velocity = Vector2.ZERO
+		body.rotation = 0.0
+		if state == State.KNOCKED:
+			state = State.IDLE
+		else:
+			_place()
+		return
 	body.rotation += dir * 10.0 * delta # spin through the air
 	if state == State.THROWN and kind == SockTypes.Kind.TOE and is_on_wall():
 		_start_climb()
@@ -176,6 +187,9 @@ func _state_flying(delta: float) -> void:
 
 
 func _state_walk(delta: float) -> void:
+	if global_position.y > LOST_Y:
+		_place() # walked into a hole: wait for a whistle
+		return
 	_apply_gravity(delta)
 	velocity.x = dir * WALK_SPEED
 	move_and_slide()
@@ -308,8 +322,11 @@ func _start_climb() -> void:
 	_set_collision(0, LAYER_TERRAIN)
 	var steps_here := 0
 	for sock in get_tree().get_nodes_in_group("recruits"):
-		if sock != self and sock.climbed and sock.state == State.PLACED \
-				and absf(sock.global_position.x - global_position.x) < 50.0:
+		if sock == self or absf(sock.global_position.x - global_position.x) > 50.0:
+			continue
+		# Count the socks already stuck here AND the ones still climbing, so two
+		# Toe Socks sent quickly one after the other do not pick the same step.
+		if (sock.climbed and sock.state == State.PLACED) or sock.state == State.CLIMB:
 			steps_here += 1
 	# Each new Toe Sock stops one step higher than the last one: a staircase!
 	_climb_target_y = _ground_y() - STEP_HEIGHT * (steps_here + 1)

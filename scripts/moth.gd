@@ -42,7 +42,7 @@ func on_soaked() -> void:
 
 # A moth does not hurt the hero. It only wants socks.
 func touch_player(p) -> void:
-	if p.velocity.y > 50.0 and p.global_position.y < global_position.y:
+	if is_stomping(p):
 		p.bounce()
 		defeat()
 

@@ -25,6 +25,7 @@ var current := 0              # index of the level being played
 var stars := {}               # level id -> best number of stars (1 to 3)
 var seen_intro := false
 var saving_enabled := true    # the automatic test turns this off
+var save_path := SAVE_PATH    # (the tests point this at a throw-away file)
 var story := {}               # text for the story screen (see intro.gd)
 
 
@@ -93,22 +94,39 @@ func show_story(big_text: String, small_text: String, next_scene: String, sock_k
 func save_game() -> void:
 	if not saving_enabled:
 		return
-	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	var file := FileAccess.open(save_path, FileAccess.WRITE)
 	if file == null:
 		return
 	file.store_string(JSON.stringify({"stars": stars, "seen_intro": seen_intro}))
 
 
 func load_game() -> void:
-	if not FileAccess.file_exists(SAVE_PATH):
+	if not FileAccess.file_exists(save_path):
 		return
-	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	var file := FileAccess.open(save_path, FileAccess.READ)
 	if file == null:
 		return
-	var parsed = JSON.parse_string(file.get_as_text())
-	if parsed is Dictionary:
-		stars = parsed.get("stars", {})
-		seen_intro = parsed.get("seen_intro", false)
+	# A save file can be broken (half written, edited by hand...). We check
+	# everything we read, so a bad file can never crash the game.
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK or not (json.data is Dictionary):
+		return
+	var saved = json.data.get("stars", {})
+	stars = {}
+	if saved is Dictionary:
+		for id in saved:
+			var value = saved[id]
+			if (value is float or value is int) and value >= 1 and _has_level(str(id)):
+				stars[str(id)] = mini(int(value), 3)
+	var seen = json.data.get("seen_intro", false)
+	seen_intro = seen is bool and seen
+
+
+func _has_level(id: String) -> bool:
+	for level in levels:
+		if level["id"] == id:
+			return true
+	return false
 
 
 func reset_progress() -> void:

@@ -54,6 +54,8 @@ var enemies: Array = []
 var won := false
 var flawless := true        # nobody got bonked or soaked (third star)
 var time := 0.0
+var bonks := 0             # how many times an enemy got us (the tests read this)
+var respawns := 0          # how many times we went back to a checkpoint
 var _theme: Dictionary
 
 
@@ -240,6 +242,7 @@ func shake(amount: float) -> void:
 # Something bad happened: no "flawless" star this time.
 func note_bonk() -> void:
 	flawless = false
+	bonks += 1
 
 
 func _on_army_changed(_count: int) -> void:
@@ -262,6 +265,7 @@ func _on_soaked(body: Node2D) -> void:
 
 
 func _send_back(text: String) -> void:
+	respawns += 1
 	var spot: Vector2 = data["checkpoints"][0]
 	for c in data["checkpoints"]:
 		if c.x <= player.global_position.x:

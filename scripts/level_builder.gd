@@ -12,6 +12,8 @@ extends RefCounted
 const SockTypes = preload("res://scripts/sock_types.gd")
 
 const BOTTOM := 900.0
+const SAFE_LEDGE := 160.0    # empty floor on top of every wall
+const SAFE_LANDING := 120.0  # empty floor below every drop
 const BUTTON_TINTS := [Color("fd79a8"), Color("00cec9"), Color("fdcb6e"), Color("a29bfe")]
 
 var d := {}          # the finished level description (a Dictionary)
@@ -30,6 +32,7 @@ func _init(id: String, title: String, world: int) -> void:
 		"blocks": [], "water": [], "socks": [], "boxes": [], "enemies": [],
 		"signs": [], "lines": [], "checkpoints": [],
 		"drain": Vector2.ZERO, "boss": {}, "errors": [],
+		"pieces": [], # the list of pieces in order (the automatic test bot reads it)
 	}
 
 
@@ -60,6 +63,14 @@ func _require(ok: bool, what: String) -> void:
 		d["errors"].append("%s at x=%d: %s" % [d["id"], int(x), what])
 
 
+# Remember which piece starts here. The test bot uses this list to know what
+# is coming (a wall, a puddle...) just like a player sees it on screen.
+func _piece(kind: String, extra := {}) -> void:
+	var p := {"kind": kind, "x0": x, "x1": x, "gy": gy}
+	p.merge(extra)
+	d["pieces"].append(p)
+
+
 func put_sock(kind: int, pos: Vector2) -> void:
 	d["socks"].append({"kind": kind, "pos": pos})
 	_have[kind] += 1
@@ -82,6 +93,7 @@ func tip(text: String, dx := 140.0, height := 190.0) -> void:
 # ---------------- Pieces ----------------
 
 func start(width := 260.0) -> void:
+	_piece("start")
 	_floor(0.0, width)
 	d["start"] = Vector2(120, gy - 2.0)
 	d["checkpoints"].append(Vector2(120, gy - 2.0))
@@ -90,12 +102,14 @@ func start(width := 260.0) -> void:
 
 
 func flat(width: float) -> void:
+	_piece("flat")
 	_cp()
 	_floor(x, width)
 	x += width
 
 
 func sock(kind: int) -> void:
+	_piece("sock")
 	_floor(x, 120.0)
 	put_sock(kind, Vector2(x + 60.0, gy))
 	x += 120.0
@@ -109,6 +123,7 @@ func socks(kinds: Array) -> void:
 # A soap box and a puddle too wide to jump. Needs a Wool Sock to push the box in.
 func box_puddle() -> void:
 	_require(_have[SockTypes.Kind.WOOL] >= 1, "box_puddle needs a Wool Sock")
+	_piece("box_puddle", {"box": d["boxes"].size()})
 	_cp()
 	_floor(x, 250.0)
 	d["boxes"].append(Vector2(x + 140.0, gy))
@@ -118,6 +133,7 @@ func box_puddle() -> void:
 
 # A puddle you can jump over (150-170 px).
 func puddle(width := 150.0) -> void:
+	_piece("puddle")
 	_cp()
 	_floor(x, 100.0)
 	x += 100.0
@@ -132,12 +148,14 @@ func _pit(width: float) -> void:
 
 # A hole with no bottom. Fall in = back to the checkpoint.
 func gap(width := 150.0) -> void:
+	_piece("gap")
 	_cp()
 	_floor(x, 100.0)
 	x += 100.0 + width
 
 
 func bunnies(count := 1, width := 450.0) -> void:
+	_piece("bunnies")
 	_cp()
 	_floor(x, width)
 	for i in count:
@@ -157,24 +175,33 @@ func wall(height: float) -> void:
 		_require(toes >= 1 or _total_socks() >= 3, "wall(200) needs a Toe Sock or 3 socks")
 	elif height > 120.0:
 		_require(_total_socks() >= 1, "wall(160) needs 1 sock")
+	_piece("wall", {"height": height})
 	_cp()
 	_floor(x, 120.0)
 	x += 120.0
 	gy -= height
 	d["min_gy"] = minf(d["min_gy"], gy)
+	# A safe ledge on top: no enemy may wait right where the hero lands.
+	_floor(x, SAFE_LEDGE)
+	x += SAFE_LEDGE
 
 
 # The ground goes DOWN (just walk off the edge).
 func drop(height: float) -> void:
+	_piece("drop")
 	_cp()
 	_floor(x, 100.0)
 	x += 100.0
 	gy = minf(gy + height, 600.0)
+	# A safe place to land at the bottom.
+	_floor(x, SAFE_LANDING)
+	x += SAFE_LANDING
 
 
 # Giant buttons to jump on, like stairs. "heights" are above the ground,
 # each one at most 95 higher than the one before.
 func buttons(heights: Array, sock_kind := -1, with_bunny := false) -> void:
+	_piece("buttons", {"heights": heights, "has_sock": sock_kind >= 0})
 	_cp()
 	var width := 120.0 + 180.0 * heights.size()
 	_floor(x, width)
@@ -190,6 +217,7 @@ func buttons(heights: Array, sock_kind := -1, with_bunny := false) -> void:
 
 # A laundry basket (70 px high), maybe with a sock on top.
 func basket(sock_kind := -1) -> void:
+	_piece("basket")
 	_cp()
 	_floor(x, 300.0)
 	_block(Rect2(x + 60.0, gy - 70.0, 180, 70), "basket")
@@ -201,6 +229,7 @@ func basket(sock_kind := -1) -> void:
 # Static Sparks. mode "h" = slides left-right near the floor (jump over it, or
 # send a Wool Sock). mode "v" = bobs up and down (run under it at the right time).
 func sparks(count := 1, width := 400.0, mode := "h") -> void:
+	_piece("sparks")
 	_cp()
 	_floor(x, width)
 	for i in count:
@@ -214,6 +243,7 @@ func sparks(count := 1, width := 400.0, mode := "h") -> void:
 
 # Clothespin Snappers hanging from a clothesline.
 func snappers(count := 1, width := 400.0) -> void:
+	_piece("snappers")
 	_cp()
 	_floor(x, width)
 	d["lines"].append([Vector2(x + 10.0, gy - 285.0), Vector2(x + width - 10.0, gy - 285.0)])
@@ -225,6 +255,7 @@ func snappers(count := 1, width := 400.0) -> void:
 # A Hot Iron waiting on the far side of a small puddle. Stand on the near side:
 # it charges at you and falls into the water.
 func iron_trap() -> void:
+	_piece("iron_trap")
 	_cp()
 	_floor(x, 160.0)
 	x += 160.0
@@ -236,15 +267,17 @@ func iron_trap() -> void:
 
 # Moths hovering above the path.
 func moths(count := 1, width := 450.0) -> void:
+	_piece("moths")
 	_cp()
 	_floor(x, width)
 	for i in count:
-		put_enemy("moth", Vector2(x + width * (i + 1) / (count + 1), gy - 170.0))
+		put_enemy("moth", Vector2(x + width * (i + 1) / (count + 1), gy - 150.0))
 	x += width
 
 
 # The exit. Always the last piece.
 func drain() -> void:
+	_piece("drain")
 	_cp()
 	_floor(x, 520.0)
 	d["drain"] = Vector2(x + 330.0, gy)
@@ -255,5 +288,9 @@ func drain() -> void:
 func finish(need: int) -> Dictionary:
 	d["need"] = need
 	d["width"] = x
+	# Each piece ends where the next one starts.
+	var pieces: Array = d["pieces"]
+	for i in pieces.size():
+		pieces[i]["x1"] = pieces[i + 1]["x0"] if i + 1 < pieces.size() else x
 	_require(need <= d["socks"].size(), "need is bigger than the number of socks")
 	return d

@@ -98,7 +98,8 @@ scripts/
   art.gd  block_art.gd  backdrop.gd  water.gd  soap_bubble.gd  exit_drain.gd
   stink_cloud.gd  pushable_box.gd  lint_bunny_art.gd  iron_art.gd   Drawing and props.
 assets/              Only the project icon (everything else is made by code).
-tests/               An automatic test that plays the game by itself.
+tests/               Automatic tests: small checks, a mechanics test, and a robot player.
+run_tests.ps1        Runs all the tests.
 ```
 
 ## How to add your own level
@@ -151,18 +152,29 @@ player can have a Toe Sock, the automatic test tells you.
 12. **Physics layers** (`[layer_names]` in `project.godot`). *Layer* = "what I am",
     *mask* = "what I bump into".
 
-## Automatic test
+## Automatic tests
 
-`tests/smoke_test.tscn` checks the design of all 18 stages, loads each one, then plays a test
-level by itself: recruit, pick, aim, push the box, stink and stomp a bunny, climb a wall on
-Toe Socks with real jumps, beat every enemy, and beat all three bosses.
-To run it from a terminal in this folder:
+There are three tests in `tests/`. Run them after you change something:
 
 ```
-godot --headless --fixed-fps 60 res://tests/smoke_test.tscn
+powershell -File run_tests.ps1
 ```
 
-It prints `SMOKE TEST: ALL PASSED` when everything works. Run it after you change something.
+(If your Godot is not installed with Steam, set the path first:
+`$env:GODOT = "C:\path\to\godot.exe"`.) Or run one test by hand:
+
+```
+godot --headless --fixed-fps 60 res://tests/unit_test.tscn
+```
+
+| Test | What it does | Prints when all is fine |
+|---|---|---|
+| `unit_test` | About 180 small checks: level design rules, sounds and keys, saving (also with a broken save file), menus, and "what if" cases (Q with no socks, a sock falling into a hole, two Toe Socks at once...). | `UNIT TEST: ALL PASSED` |
+| `smoke_test` | Loads all 18 stages, then checks every mechanic, every enemy and all three bosses. | `SMOKE TEST: ALL PASSED` |
+| `campaign_bot` | A robot player. It plays all 15 normal levels from start to drain with the **real keys** (no cheating) and must bring every sock. If the bot can do it, the level is possible. | `CAMPAIGN BOT: ALL PASSED` |
+
+When a test finds a problem it prints a line starting with `FAIL` that says what went wrong.
+The bot also prints how long each level took and how many times it got bonked.
 
 ## Ideas for what to add next
 
