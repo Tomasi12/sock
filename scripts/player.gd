@@ -21,6 +21,7 @@ const MAX_FALL_SPEED := 1100.0
 const COYOTE_TIME := 0.1        # you can still jump a moment after leaving a ledge
 const JUMP_BUFFER := 0.12       # pressing jump slightly before landing still works
 
+const SPRING_VELOCITY := -1100.0 # bounce of a Rubber Sock (about 400 px high!)
 const RECRUIT_RANGE := 90.0     # how close you must be to recruit a sock
 
 # The "trail" is a list of places the hero has been. Followers walk on it,
@@ -36,14 +37,16 @@ const LAYER_PROPS := 16
 
 # How a thrown sock flies (the recruit uses the same numbers).
 const THROW_VELOCITY := Vector2(330, -430)
+const DROP_VELOCITY := Vector2(120, -250)   # the Rubber Sock is only dropped
 
 const SEND_LINES := {
 	SockTypes.Kind.WOOL: "Go, Wool Sock! PUSH!",
 	SockTypes.Kind.TOE: "Toe Sock, CLIMB!",
 	SockTypes.Kind.GYM: "Gym Sock... release the STINK!",
+	SockTypes.Kind.RUBBER: "Rubber Sock, plop! Now JUMP on it to bounce!",
 }
 # Tab goes through this list. -1 means "AUTO: the game picks for me".
-const PICK_ORDER := [-1, SockTypes.Kind.WOOL, SockTypes.Kind.TOE, SockTypes.Kind.GYM]
+const PICK_ORDER := [-1, SockTypes.Kind.WOOL, SockTypes.Kind.TOE, SockTypes.Kind.GYM, SockTypes.Kind.RUBBER]
 
 var facing := 1.0
 var army: Array = []                 # recruits following us, front first
@@ -62,6 +65,8 @@ var _walk_time := 0.0
 var _invulnerable := 0.0
 var _knockback := 0.0
 var _shake := 0.0
+var _can_cut_jump := false           # only a jump made with the key can be made smaller
+var _spring_lock := 0.0              # just bounced: the floor below does not count
 var _fall_speed := 0.0               # how fast we were falling a moment ago
 var _fall_memory := 0.0              # ...and for how long we still remember it
 var _aim_line: Line2D
@@ -107,9 +112,10 @@ func _physics_process(delta: float) -> void:
 
 
 func _move(delta: float) -> void:
-	if is_on_floor():
+	_spring_lock -= delta
+	if is_on_floor() and _spring_lock <= 0.0:
 		_coyote = COYOTE_TIME
-	else:
+	elif not is_on_floor():
 		_coyote -= delta
 		velocity.y = minf(velocity.y + GRAVITY * delta, MAX_FALL_SPEED)
 
@@ -134,12 +140,14 @@ func _move(delta: float) -> void:
 		velocity.y = JUMP_VELOCITY
 		_jump_buffer = 0.0
 		_coyote = 0.0
+		_can_cut_jump = true
 		body.squash(Vector2(0.7, 1.35)) # STRETCH!
 		Sfx.play("jump")
 		Art.burst(get_parent(), global_position, Color(1, 1, 1, 0.8), 6, 80.0, 0.8)
 	# Let go of jump early = smaller jump.
-	if Input.is_action_just_released("jump") and velocity.y < -200.0:
+	if Input.is_action_just_released("jump") and velocity.y < -200.0 and _can_cut_jump:
 		velocity.y *= 0.55
+		_can_cut_jump = false
 
 	# Remember a fast fall for a moment: landing sets our speed to 0, but an
 	# enemy we just landed on must still know that we came from above.
@@ -151,6 +159,14 @@ func _move(delta: float) -> void:
 
 	# move_and_slide() moves the body and stops it at walls and floors.
 	move_and_slide()
+
+	# Landed on a Rubber Sock? BOING!
+	for i in get_slide_collision_count():
+		var hit := get_slide_collision(i)
+		var other := hit.get_collider()
+		if other != null and other.has_method("is_trampoline") and other.is_trampoline() and hit.get_normal().y < -0.7:
+			_spring(other)
+			break
 
 	# Just landed? SQUISH!
 	if is_on_floor() and not _was_on_floor:
@@ -187,6 +203,17 @@ func _animate(delta: float) -> void:
 
 func shake(amount: float) -> void:
 	_shake = maxf(_shake, amount)
+
+
+func _spring(sock) -> void:
+	velocity.y = SPRING_VELOCITY
+	_coyote = 0.0
+	_jump_buffer = 0.0
+	_can_cut_jump = false # letting go of jump must not spoil the bounce
+	_spring_lock = 0.1
+	body.squash(Vector2(0.6, 1.5))
+	sock.boing()
+	Sfx.play("boing")
 
 
 # Remember where we walked, so followers can walk the same path.
@@ -256,6 +283,8 @@ func _handle_picking() -> void:
 		_set_pick(SockTypes.Kind.TOE)
 	elif Input.is_action_just_pressed("pick_gym"):
 		_set_pick(SockTypes.Kind.GYM)
+	elif Input.is_action_just_pressed("pick_rubber"):
+		_set_pick(SockTypes.Kind.RUBBER)
 
 
 func _set_pick(kind: int) -> void:
@@ -287,7 +316,8 @@ func _show_aim(sock) -> void:
 	else:
 		# Other socks fly. School physics: position = start + speed*t + gravity*t*t/2
 		var start := Vector2(facing * 18.0, -30.0)
-		var speed := Vector2(THROW_VELOCITY.x * facing, THROW_VELOCITY.y)
+		var v: Vector2 = DROP_VELOCITY if sock.kind == SockTypes.Kind.RUBBER else THROW_VELOCITY
+		var speed := Vector2(v.x * facing, v.y)
 		var t := 0.0
 		while t < 1.2:
 			var p := start + speed * t + Vector2(0, 0.5 * GRAVITY * t * t)
@@ -328,8 +358,17 @@ func _choose_sock_to_send():
 			return gym
 	if _wall_ahead(260.0):
 		var toe = _first_of_kind(SockTypes.Kind.TOE)
+		if toe != null and not _wall_ahead(260.0, 300.0):
+			return toe
+		var rubber = _first_of_kind(SockTypes.Kind.RUBBER)
+		if rubber != null:
+			return rubber # too tall for Toe Socks (or no Toe Sock): bounce!
 		if toe != null:
 			return toe
+	if _hole_ahead():
+		var spring = _first_of_kind(SockTypes.Kind.RUBBER)
+		if spring != null:
+			return spring
 	return army[0]
 
 
@@ -354,11 +393,23 @@ func _thing_ahead(group_name: String, max_distance: float) -> bool:
 
 
 # Shoot an invisible ray forward to see if a wall is in front of us.
-func _wall_ahead(max_distance: float) -> bool:
+# "height" = how high above our feet we look (a ray at 300 finds giant walls).
+func _wall_ahead(max_distance: float, height := 25.0) -> bool:
 	var space := get_world_2d().direct_space_state
-	var from := global_position + Vector2(0, -25)
+	var from := global_position + Vector2(0, -height)
 	var query := PhysicsRayQueryParameters2D.create(from, from + Vector2(facing * max_distance, 0), LAYER_TERRAIN)
 	return not space.intersect_ray(query).is_empty()
+
+
+# Is there a hole (no floor at all) a little in front of us?
+func _hole_ahead() -> bool:
+	var space := get_world_2d().direct_space_state
+	for dx in [120.0, 220.0]:
+		var from := global_position + Vector2(facing * dx, -10)
+		var query := PhysicsRayQueryParameters2D.create(from, from + Vector2(0, 700), LAYER_TERRAIN)
+		if space.intersect_ray(query).is_empty():
+			return true
+	return false
 
 
 # Called by an enemy when it touches us.

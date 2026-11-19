@@ -56,7 +56,7 @@ func _ready() -> void:
 	right_column.add_child(_time_label)
 
 	# Bottom: controls help
-	var help := Art.make_label("A/D: move   Space: jump   E: recruit / whistle   Q: hold to aim, let go to send   Tab or 1 2 3: pick sock   R: restart   Esc: map   M: sound", 15, Color.WHITE, 5)
+	var help := Art.make_label("A/D: move   Space: jump   E: recruit / whistle   Q: hold to aim, let go to send   Tab or 1-4: pick sock   R: restart   Esc: map   M: sound", 15, Color.WHITE, 5)
 	add_child(help)
 	help.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	help.offset_top = -36

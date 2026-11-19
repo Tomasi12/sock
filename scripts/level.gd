@@ -26,6 +26,8 @@ const ENEMY_SCRIPTS := {
 	"boss_fluff": preload("res://scripts/boss_fluff.gd"),
 	"boss_iron": preload("res://scripts/boss_iron.gd"),
 	"boss_dryer": preload("res://scripts/boss_dryer.gd"),
+	"hanger": preload("res://scripts/hanger.gd"),
+	"boss_vacuum": preload("res://scripts/boss_vacuum.gd"),
 }
 
 # Colours of each world.
@@ -41,6 +43,10 @@ const THEMES := {
 	3: {
 		"sky": [Color("2d1b3d"), Color("44224f"), Color("5e2a52"), Color("7a3350"), Color("96404a")],
 		"floor": Color("6c5b7b"), "wall": Color("7d6b8a"), "holes": Color(1.0, 0.6, 0.2, 0.12),
+	},
+	4: {
+		"sky": [Color("0f2027"), Color("173540"), Color("1f4a52"), Color("2c6066"), Color("3d7a7a")],
+		"floor": Color("9c6b4e"), "wall": Color("b9875f"), "holes": Color(0.7, 1.0, 0.9, 0.08),
 	},
 }
 

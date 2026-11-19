@@ -37,6 +37,8 @@ func _ready() -> void:
 	_sounds["zap"] = _tone(1400, 300, 0.16, "saw", 0.25)
 	_sounds["whistle"] = _tone(1200, 1900, 0.25, "sine", 0.3)
 	_sounds["snap"] = _tone(700, 100, 0.07, "noise", 0.45)
+	_sounds["boing"] = _tone(160, 760, 0.28, "sine", 0.45)
+	_sounds["suck"] = _tone(260, 90, 0.7, "noise", 0.25)
 	_sounds["click"] = _tone(600, 800, 0.04, "square", 0.2)
 	_sounds["recruit"] = _notes([660, 880], 0.09, "square", 0.25)
 	_sounds["boss_hit"] = _notes([330, 247, 165], 0.12, "square", 0.35)

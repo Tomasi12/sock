@@ -13,6 +13,7 @@ const LevelScene = preload("res://scenes/level.tscn")
 const W := SockTypes.Kind.WOOL
 const T := SockTypes.Kind.TOE
 const G := SockTypes.Kind.GYM
+const R := SockTypes.Kind.RUBBER
 
 var failures: Array[String] = []
 var level
@@ -33,6 +34,8 @@ func _run() -> void:
 	await _test_boss_fluff()
 	await _test_boss_iron()
 	await _test_boss_dryer()
+	await _test_rubber_and_hawks()
+	await _test_boss_vacuum()
 
 	print("")
 	if failures.is_empty():
@@ -56,7 +59,7 @@ func _test_design() -> void:
 		ids[id] = true
 		_check(data["drain"] != Vector2.ZERO, "%s has a drain" % id)
 		_check(data["need"] <= data["socks"].size(), "%s needs %d of %d socks" % [id, data["need"], data["socks"].size()])
-	_check(GameState.levels.size() == 18, "the campaign has 18 stages")
+	_check(GameState.levels.size() == 24, "the campaign has 24 stages")
 	var total_width := 0.0
 	for data in GameState.levels:
 		total_width += data["width"]
@@ -111,7 +114,7 @@ func _test_mechanics() -> void:
 	_check(data["errors"].is_empty(), "test level has no design errors")
 	await _load(data)
 
-	for action in ["move_left", "move_right", "jump", "recruit", "command", "pick_next", "pick_wool", "pick_toe", "pick_gym", "restart", "mute"]:
+	for action in ["move_left", "move_right", "jump", "recruit", "command", "pick_next", "pick_wool", "pick_toe", "pick_gym", "pick_rubber", "restart", "mute"]:
 		_check(InputMap.has_action(action), "input action '%s' exists" % action)
 
 	# Walking and jumping with the real input actions
@@ -367,6 +370,219 @@ func _test_boss_dryer() -> void:
 	await _finish_boss_level()
 
 
+# ---------------- 6. World 4: Rubber Sock and Hanger Hawk ----------------
+
+func _test_rubber_and_hawks() -> void:
+	print("-- Rubber Sock and Hanger Hawk")
+	var b := Builder.new("T-4", "Test 4", 4)
+	b.start()
+	b.socks([R, T])
+	b.flat(400)
+	b.wall(400)
+	b.flat(300)
+	b.chasm(300)
+	b.flat(700)
+	b.hawks(1, 600)
+	b.drain()
+	var data := b.finish(1)
+	_check(data["errors"].is_empty(), "World 4 test level has no design errors %s" % str(data["errors"]))
+	var bad := Builder.new("T-5", "Bad", 4)
+	bad.start()
+	bad.chasm(300)
+	bad.wall(400)
+	_check(bad.finish(0)["errors"].size() == 2, "the builder knows a chasm and a giant wall need a Rubber Sock")
+	await _load(data)
+	var rubber = _sock(R, 0)
+	var toe = _sock(T, 0)
+	player.add_to_army(rubber)
+	player.add_to_army(toe)
+
+	# Pressing 4 picks the Rubber Sock, Q only drops it a short way.
+	await _tap("pick_rubber")
+	_check(player.selected_kind == R, "pressing 4 picks the Rubber Sock")
+	_teleport(Vector2(560, 598))
+	player.facing = 1.0
+	await _wait(5)
+	player._command()
+	await _wait(60)
+	_check(rubber.state == rubber.State.PLACED and rubber.is_trampoline(), "the Rubber Sock lands and becomes a trampoline")
+	var drop: float = rubber.global_position.x - 560.0
+	_check(drop > 40.0 and drop < 110.0, "it lands just in front of the hero (%d px)" % int(drop))
+
+	# Jump on it: a much higher bounce than a normal jump.
+	_teleport(Vector2(rubber.global_position.x, 520))
+	var top := 9999.0
+	for i in 100:
+		await _wait(1)
+		top = minf(top, player.global_position.y)
+	var height := 600.0 - top
+	_check(height > 380.0, "bouncing on a Rubber Sock goes about 400 px high (%d px)" % int(height))
+	# A bounce can not be made smaller by letting go of jump.
+	_teleport(Vector2(rubber.global_position.x, 520))
+	Input.action_press("jump")
+	await _wait(1)
+	top = 9999.0
+	for i in 100:
+		await _wait(1)
+		if i == 12:
+			Input.action_release("jump")
+		top = minf(top, player.global_position.y)
+	_check(600.0 - top > 380.0, "letting go of jump does not spoil the bounce (%d px)" % int(600.0 - top))
+	await _wait(30)
+
+	# A normal jump does not get over a 400 wall, a bounce does.
+	var wall_x: float = _piece(data, "wall")["x0"] + 120.0
+	_teleport(Vector2(wall_x - 30.0, 598))
+	Input.action_press("move_right")
+	Input.action_press("jump")
+	await _wait(60)
+	Input.action_release("jump")
+	Input.action_release("move_right")
+	_check(player.global_position.x < wall_x, "a normal jump can not climb a 400 wall")
+	player._try_recruit()
+	await _wait(70)
+	_teleport(Vector2(wall_x - 60.0, 598))
+	player.facing = 1.0
+	player._set_pick(-1) # back to AUTO
+	await _wait(5)
+	_check(player._choose_sock_to_send() == rubber, "AUTO picks the Rubber Sock for a giant wall")
+	player._command()
+	await _wait(60)
+	await _bounce_right(rubber)
+	_check(player.global_position.y < 205.0 and player.global_position.x > wall_x,
+		"bouncing on a Rubber Sock gets the hero on top of a 400 wall (y=%d)" % int(player.global_position.y))
+	player._try_recruit()
+	await _wait(70)
+	_check(rubber in player.army, "the whistle brings the Rubber Sock up the wall")
+
+	# The chasm: too wide to jump, but a bounce flies over it.
+	var edge: float = _piece(data, "chasm")["x0"] + 220.0
+	var floor_y: float = _piece(data, "chasm")["gy"] - 2.0
+	var before: int = level.respawns
+	_teleport(Vector2(edge - 60.0, floor_y))
+	await _wait(5)
+	Input.action_press("move_right")
+	while player.global_position.x < edge - 6.0:
+		await _wait(1)
+	Input.action_press("jump")
+	await _wait(150)
+	Input.action_release("jump")
+	Input.action_release("move_right")
+	_check(level.respawns == before + 1, "a running jump falls into a 300 px chasm")
+	_teleport(Vector2(edge - 110.0, floor_y))
+	player.facing = 1.0
+	await _wait(5)
+	_check(player._choose_sock_to_send() == rubber, "AUTO picks the Rubber Sock in front of a chasm")
+	player._command()
+	await _wait(60)
+	_check(rubber.is_trampoline() and rubber.global_position.x < edge, "the Rubber Sock waits on this side of the chasm")
+	await _bounce_right(rubber)
+	_check(level.respawns == before + 1 and player.global_position.x > edge + 300.0,
+		"one bounce flies over the chasm (x=%d)" % int(player.global_position.x))
+	player._try_recruit()
+	await _wait(70)
+	_check(rubber in player.army, "the whistle calls the Rubber Sock across the chasm")
+
+	# Hanger Hawk: it dives at the hero, and can be stomped from above.
+	var hawk = _enemy("hanger")
+	_check(hawk != null, "the Hanger Hawk is in the level")
+	var hawk_x: float = hawk.global_position.x
+	_teleport(Vector2(hawk_x, floor_y))
+	var bonks: int = level.bonks
+	await _wait_until(func(): return level.bonks > bonks, 200)
+	_check(level.bonks > bonks, "a Hanger Hawk dives at a hero standing still")
+	await _wait_until(func(): return hawk.state == hawk.S.CRUISE, 400)
+	_check(hawk.state == hawk.S.CRUISE and hawk.global_position.y < floor_y - 200.0, "after the dive it flies back up high")
+	# Out of reach for a normal jump
+	_teleport(Vector2(hawk.global_position.x + 300.0, floor_y))
+	await _wait(30)
+	_check(floor_y - 128.0 - 46.0 > hawk.global_position.y + 22.0, "it cruises too high for a normal jump")
+	_teleport(hawk.global_position + Vector2(hawk.dir * 20.0, -60))
+	await _wait(40)
+	_check(not is_instance_valid(hawk) or hawk.dead, "landing on a cruising Hanger Hawk from above defeats it")
+	await _unload()
+
+
+func _test_boss_vacuum() -> void:
+	print("-- boss: Count Suckula")
+	await _load(_level_by_id("4-B"))
+	var boss = level.boss
+	_check(boss != null and level.drain.locked, "the vacuum boss level starts with a locked drain")
+	var wool = _sock(W, 0)
+	var rubber = _sock(R, 0)
+	player.add_to_army(wool)
+	player.add_to_army(rubber)
+	var left: float = boss.global_position.x - boss.BODY.x / 2.0
+
+	# He sucks: the hero is pulled towards him.
+	await _wait_until(func(): return boss.state == boss.S.SUCK, 900)
+	_check(boss.state == boss.S.SUCK, "Count Suckula starts sucking")
+	_teleport(Vector2(left - 420.0, 598))
+	await _wait(60)
+	_check(player.global_position.x > left - 400.0, "sucking pulls the hero (x=%d)" % int(player.global_position.x))
+
+	# A skinny sock slips through, a Wool Sock clogs him.
+	_teleport(Vector2(left - 230.0, 598))
+	player.facing = 1.0
+	player._set_pick(R)
+	await _wait(2)
+	player._command()
+	await _wait(40)
+	_check(boss.state == boss.S.SUCK and boss.hp == 3, "a Rubber Sock does not clog him")
+	player._set_pick(R)
+	player._try_recruit() # get the Rubber Sock back (it would block the Wool Sock)
+	await _wait(70)
+	for hit in 3:
+		if not is_instance_valid(boss) or boss.dead:
+			break
+		boss.state = boss.S.SUCK # (the test does not wait for every cycle)
+		boss._timer = 5.0
+		_teleport(Vector2(left - 260.0, 598))
+		player.facing = 1.0
+		await _wait(2)
+		if not (wool in player.army):
+			player.add_to_army(wool)
+		player._set_pick(W)
+		player._command()
+		player._set_pick(W)
+		await _wait_until(func(): return boss.state == boss.S.CLOGGED, 240)
+		_check(boss.state == boss.S.CLOGGED, "a Wool Sock clogs his nozzle (%d)" % (hit + 1))
+		# jump on the red button on his head
+		var hp_before: int = boss.hp
+		_teleport(Vector2(boss.global_position.x, boss.global_position.y - boss.BODY.y - 60.0))
+		await _wait_until(func(): return not is_instance_valid(boss) or boss.hp < hp_before, 90)
+		_check(not is_instance_valid(boss) or boss.hp == hp_before - 1, "landing on his button hurts him (%d)" % (hit + 1))
+		await _wait(60)
+	_check(not is_instance_valid(boss) or boss.dead, "Count Suckula is defeated after 3 hits")
+
+	# The real way up: bounce on a Rubber Sock next to him.
+	await _finish_boss_level()
+
+	# A fresh fight: check that the bounce really reaches his head.
+	await _load(_level_by_id("4-B"))
+	boss = level.boss
+	rubber = _sock(R, 0)
+	player.add_to_army(rubber)
+	boss._timer = 30.0 # keep him resting (no bunnies, no sucking) for this check
+	left = boss.global_position.x - boss.BODY.x / 2.0
+	_teleport(Vector2(left - 140.0, 598))
+	player.facing = 1.0
+	player._set_pick(R)
+	await _wait(5)
+	player._command()
+	await _wait(60)
+	# bounce, and let go of "right" once we are above him
+	_teleport(rubber.global_position + Vector2(0, -44))
+	await _wait(8)
+	Input.action_press("move_right")
+	await _wait_until(func(): return player.global_position.x > boss.global_position.x - 20.0, 120)
+	Input.action_release("move_right")
+	await _wait_until(func(): return player.is_on_floor(), 120)
+	_check(absf(player.global_position.y - (boss.global_position.y - boss.BODY.y)) < 4.0,
+		"a Rubber Sock bounce lands the hero on Count Suckula's head (y=%d)" % int(player.global_position.y))
+	await _unload()
+
+
 func _finish_boss_level() -> void:
 	await _wait(30)
 	_check(get_tree().get_nodes_in_group("enemies").is_empty(), "the boss's helpers are gone")
@@ -397,6 +613,23 @@ func _unload() -> void:
 	level = null
 	player = null
 	await _wait(3)
+
+
+# Drop the hero onto a Rubber Sock, and hold "right" once it bounced.
+func _bounce_right(sock) -> void:
+	_teleport(sock.global_position + Vector2(0, -44))
+	await _wait(8)
+	Input.action_press("move_right")
+	await _wait(150)
+	Input.action_release("move_right")
+	await _wait(10)
+
+
+func _piece(data: Dictionary, kind: String) -> Dictionary:
+	for p in data["pieces"]:
+		if p["kind"] == kind:
+			return p
+	return {}
 
 
 func _level_by_id(id: String) -> Dictionary:

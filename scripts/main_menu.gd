@@ -21,10 +21,10 @@ func _ready() -> void:
 	bubbles.position = Vector2(screen.x / 2.0, screen.y + 30.0)
 	add_child(bubbles)
 
-	# 3) Four dancing socks at the bottom (one of each kind)
-	for i in 4:
+	# 3) Five dancing socks at the bottom (one of each kind)
+	for i in 5:
 		var holder := Node2D.new()
-		holder.position = Vector2(screen.x * (0.2 + i * 0.2), screen.y - 40.0)
+		holder.position = Vector2(screen.x * (0.14 + i * 0.18), screen.y - 40.0)
 		holder.scale = Vector2(2.5, 2.5) # make them big
 		add_child(holder)
 		var sock := SockBody.new()

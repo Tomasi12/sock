@@ -23,7 +23,8 @@ const Moth = preload("res://scripts/moth.gd")
 const W := SockTypes.Kind.WOOL
 const T := SockTypes.Kind.TOE
 const G := SockTypes.Kind.GYM
-const PICK_ACTION := {W: "pick_wool", T: "pick_toe", G: "pick_gym"}
+const R := SockTypes.Kind.RUBBER
+const PICK_ACTION := {W: "pick_wool", T: "pick_toe", G: "pick_gym", R: "pick_rubber"}
 
 const MAX_SECONDS := 420      # give up on a level after 7 minutes of game time
 const MAX_RESPAWNS := 15
@@ -119,6 +120,8 @@ func _handle(piece: Dictionary) -> void:
 			await _do_iron(piece)
 		"buttons":
 			await _do_buttons(piece)
+		"chasm":
+			await _do_chasm(piece)
 		"drain":
 			await _do_drain()
 		_:
@@ -148,6 +151,12 @@ func _do_wall(piece: Dictionary) -> void:
 		if not _alive():
 			return
 		await _regroup()
+		# Too tall for our Toe Socks? Bounce up on the Rubber Sock instead.
+		if _has(R) and (height > 370.0 or _count(T) < need):
+			if await _rubber_jump(wall_x - 60.0, func(): return _on_top(wall_x, top_y)):
+				await _regroup()
+				return
+			continue
 		if not await _travel(piece["x0"] + 4.0, true):
 			return
 		for i in need:
@@ -171,6 +180,61 @@ func _do_wall(piece: Dictionary) -> void:
 			await _regroup()
 			return
 	_fail("wall(%d) at x=%d: the bot could not climb it" % [int(height), int(piece["x0"])])
+
+
+# A hole too wide to jump: bounce over it on the Rubber Sock.
+func _do_chasm(piece: Dictionary) -> void:
+	var edge: float = piece["x0"] + 220.0
+	if player.global_position.x > edge + 10.0:
+		await _travel(piece["x1"] + 6.0) # already on the other side
+		return
+	for attempt in 4:
+		if not _alive():
+			return
+		await _regroup()
+		if not _has(R):
+			_fail("chasm at x=%d: no Rubber Sock in the army" % int(piece["x0"]))
+			return
+		var across := func(): return player.is_on_floor() and player.global_position.x > edge + 20.0
+		if await _rubber_jump(edge - 110.0, across):
+			await _regroup()
+			await _travel(piece["x1"] + 6.0)
+			return
+	if _alive():
+		_fail("chasm at x=%d: the bot could not bounce over it" % int(piece["x0"]))
+
+
+# Stand at x, drop the Rubber Sock in front, step back, jump on it and hold
+# "right" while flying. Returns true when done() says we made it.
+func _rubber_jump(drop_x: float, done: Callable) -> bool:
+	if not await _travel(drop_x, true):
+		return false
+	await _send_and_wait(R)
+	var sock = null
+	for s in get_tree().get_nodes_in_group("recruits"):
+		if s.kind == R and s.state == s.State.PLACED and absf(s.global_position.x - drop_x - 50.0) < 90.0 \
+				and absf(s.global_position.y - player.global_position.y) < 10.0:
+			sock = s
+	if sock == null:
+		return false # it fell into the hole: the next try whistles it back
+	if not await _travel(sock.global_position.x - 75.0, true, false):
+		return false
+	var respawns: int = level.respawns
+	await _hop_to(sock.global_position.x)
+	var start := _frames
+	while _alive() and _frames - start < 240 and level.respawns == respawns and not done.call():
+		_set_move(1.0)
+		await _frame()
+	_set_move(0.0)
+	return level.respawns == respawns and done.call()
+
+
+func _count(kind: int) -> int:
+	var n := 0
+	for sock in player.army:
+		if sock.kind == kind:
+			n += 1
+	return n
 
 
 func _on_top(wall_x: float, top_y: float) -> bool:

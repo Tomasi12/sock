@@ -18,6 +18,14 @@ const WORLD_NAMES := {
 	1: "World 1: The Drum",
 	2: "World 2: Ironing Board Plains",
 	3: "World 3: The Dryer Depths",
+	4: "World 4: The Closet of Doom",
+}
+
+# The story screen shown when a new world starts: [big text, small text, sock kind].
+const WORLD_STORIES := {
+	2: ["Big Fluff is flat!\nOn to the Ironing Board Plains.", "The air smells of hot metal. Something is crackling...", 1],
+	3: ["The Iron Baron is cold.\nThe Dryer Depths are next.", "Deep down, a king of lint and heat is waiting.", 3],
+	4: ["The Dryer King is defeated...\nbut who stole the socks FIRST?", "From the closet comes a hungry humming. Count Suckula, the vacuum cleaner,\nhas been eating socks for years. And he is still hungry.\n\nA Rubber Sock waits for you there. Boing!", 4],
 }
 
 var levels: Array = []        # every level of the game, in order
@@ -76,13 +84,32 @@ func go_to_level(index: int) -> void:
 
 
 func go_next() -> void:
+	var story := next_story()
 	if has_next():
-		go_to_level(current + 1)
+		current += 1
+		if story.is_empty():
+			go_to_level(current)
+		else:
+			show_story(story["big"], story["small"], LEVEL_SCENE, story["kind"])
 	else:
-		show_story(
-			"The Dryer King is defeated.\nEvery lost sock is free!",
-			"Somewhere, a human opens a drawer and finds a matching pair.\nFor the first time in years.\n\nThank you for playing!",
-			MENU_SCENE, 0)
+		show_story(story["big"], story["small"], MENU_SCENE, story["kind"])
+
+
+# What to tell the player after the current level: a world story when the
+# next level is in a new world, the ending after the last level, else nothing.
+func next_story() -> Dictionary:
+	if not has_next():
+		return {
+			"big": "Count Suckula is clogged forever.\nEvery lost sock is free!",
+			"small": "Somewhere, a human opens a drawer and finds a matching pair.\nFor the first time in years.\n\nThank you for playing!",
+			"kind": 0,
+		}
+	var now: int = levels[current]["world"]
+	var next: int = levels[current + 1]["world"]
+	if next != now and WORLD_STORIES.has(next):
+		var s: Array = WORLD_STORIES[next]
+		return {"big": s[0], "small": s[1], "kind": s[2]}
+	return {}
 
 
 # Show the story screen with some text, then go to another scene.

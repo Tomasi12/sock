@@ -1,5 +1,5 @@
 # boss_dryer.gd
-# FINAL BOSS: THE DRYER KING. He does not move. He repeats 4 steps:
+# BOSS 3: THE DRYER KING. He does not move. He repeats 4 steps:
 #   1. SPIT  - he spits out a Lint Bunny (later also Static Sparks)
 #   2. BLOW  - hot air pushes you away (hold "right" to push back)
 #   3. OPEN  - he overheats and his door opens. THIS IS YOUR CHANCE!
@@ -148,7 +148,7 @@ func _check_socks() -> void:
 		shake(14.0)
 		Art.burst(get_parent(), Vector2(_left_edge(), global_position.y - 120.0), Color("ffd23f"), 30, 320.0, 1.4)
 		if hp <= 0:
-			say("THE DRYER KING IS DEFEATED! The socks are FREE!")
+			say("THE DRYER KING IS DEFEATED! But who is humming in the closet...?")
 			defeat()
 		else:
 			say("STUFFED! His lint trap is clogged! %d more!" % hp)

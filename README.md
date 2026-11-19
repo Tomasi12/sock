@@ -9,8 +9,8 @@ leading a rebellion of mismatched socks against the evil **Dryer King**.
 
 There are no image or sound files: all art and all sounds are made with code.
 
-**The game:** 3 worlds, 18 stages (15 levels + 3 bosses), 5 kinds of enemies, star ratings
-and saved progress.
+**The game:** 4 worlds, 24 stages (20 levels + 4 bosses), 4 kinds of socks, 6 kinds of
+enemies, star ratings and saved progress.
 
 ---
 
@@ -31,7 +31,7 @@ The first time, Godot spends a few seconds "importing" the project. That's norma
 | Space (or W / ↑) | Jump. Hold it for a higher jump. |
 | E | Recruit a lonely sock near you. If none is near, **whistle**: every sock that was in your army comes back. |
 | Q | **Hold** to aim (a line shows where the sock goes), **let go** to send it |
-| Tab, or 1 / 2 / 3 | Pick which sock Q sends: 1 = Wool, 2 = Toe, 3 = Gym. Press the same number again for AUTO. |
+| Tab, or 1 / 2 / 3 / 4 | Pick which sock Q sends: 1 = Wool, 2 = Toe, 3 = Gym, 4 = Rubber. Press the same number again for AUTO. |
 | R | Restart the level |
 | Esc | Back to the level map |
 | M | Sound on / off |
@@ -43,8 +43,10 @@ The first time, Godot spends a few seconds "importing" the project. That's norma
 | **Wool Sock** | red with dots, chunky | Marches forward. **Pushes** the giant soap box. **Soaks up Static Sparks.** |
 | **Toe Sock** | purple with rainbow stripes, little toes | **Climbs walls** and sticks as a step. You can jump up through it. |
 | **Gym Sock** | white with green stripes | Lands and makes a **stink cloud**: stuns bunnies and Snappers, defeats Moths. |
+| **Rubber Sock** | orange and shiny (World 4) | Plops down just in front of you. **Jump on it to bounce** about 400 px high: over giant walls and wide chasms. |
 
-On AUTO, Q picks for you: box or Spark ahead → Wool, other enemy ahead → Gym, wall ahead → Toe.
+On AUTO, Q picks for you: box or Spark ahead → Wool, other enemy ahead → Gym, wall ahead → Toe
+(a giant wall → Rubber), hole ahead → Rubber.
 Socks you send become solid blocks, so you can also **pile them up** and jump on them.
 
 ## The enemies and how to beat them
@@ -56,6 +58,7 @@ Socks you send become solid blocks, so you can also **pile them up** and jump on
 | **Static Spark** | Floats back and forth and zaps you and thrown socks. | Send a **Wool Sock**. Or jump over it / run under it. |
 | **Hot Iron** | Sees you, heats up and charges. Too hot to stomp. | **Water.** Stand on the other side of a puddle and let it charge in. |
 | **Moth** | Swoops down and chews the last sock in your line. | **Stink cloud** (moths hate Gym Socks), or jump on it. |
+| **Hanger Hawk** | A flying coat hanger, too high to reach. Shivers, then dives at you. | Keep moving so the dive misses. Then jump on it **from above**: bounce on a Rubber Sock, or catch it while it climbs back up. |
 
 ## The bosses
 
@@ -64,11 +67,12 @@ Socks you send become solid blocks, so you can also **pile them up** and jump on
 | **Big Fluff** (World 1) | Stink cloud, then jump on its head. 3 times. It calls little bunnies. |
 | **The Iron Baron** (World 2) | Jump on the buttons so his charge misses. He crashes into the wall and is dizzy: throw a sock at him. 3 times. |
 | **The Dryer King** (World 3) | He spits enemies, blows hot air (hold D to push back), then his door **opens**: throw a sock inside. 5 times. |
+| **Count Suckula** (World 4) | A vacuum cleaner. While he **sucks**, send a Wool Sock: it clogs his nozzle. Then bounce on a Rubber Sock and land on the red button on his head. 3 times. |
 
 ## Stars
 
 Each stage gives up to 3 stars: **1** for finishing, **1** for bringing *every* sock to the
-drain, **1** for a *flawless* run (never bonked, chewed or soaked). 54 stars in total.
+drain, **1** for a *flawless* run (never bonked, chewed or soaked). 72 stars in total.
 Your progress is saved automatically.
 
 ---
@@ -91,8 +95,8 @@ scripts/
   sock_types.gd      Colours, patterns and names of each sock type.
   sock_body.gd       DRAWS a sock: shape, pattern, blinking eyes, squash-and-stretch.
   enemy.gd           Parent script of all enemies: stun, stomp, defeat, hurting the hero.
-  lint_bunny.gd  snapper.gd  spark.gd  iron.gd  moth.gd        The five enemies.
-  boss_fluff.gd  boss_iron.gd  boss_dryer.gd                   The three bosses.
+  lint_bunny.gd  snapper.gd  spark.gd  iron.gd  moth.gd  hanger.gd   The six enemies.
+  boss_fluff.gd  boss_iron.gd  boss_dryer.gd  boss_vacuum.gd        The four bosses.
   hud.gd             Counter, picked sock, timer, messages, boss bar, win screen.
   world_map.gd  main_menu.gd  intro.gd  star_row.gd            Menus.
   art.gd  block_art.gd  backdrop.gd  water.gd  soap_bubble.gd  exit_drain.gd
@@ -108,15 +112,17 @@ Open `scripts/levels.gd`. A level is a list of pieces, for example:
 
 ```gdscript
 static func _my_level() -> Dictionary:
-	var b := Builder.new("4-1", "My First Level", 1)   # id, name, world (1, 2 or 3 = colours)
+	var b := Builder.new("5-1", "My First Level", 1)   # id, name, world (1 to 4 = colours)
 	b.start()
-	b.socks([W, T])          # a Wool Sock and a Toe Sock to recruit
+	b.socks([W, T, R])       # a Wool, a Toe and a Rubber Sock to recruit
 	b.tip("Hello! This is a sign.")
 	b.bunnies(2, 600)        # 2 Lint Bunnies on 600 px of floor
 	b.box_puddle()           # soap box + wide puddle (needs Wool)
 	b.flat(150)
 	b.wall(200)              # a wall (needs a Toe Sock)
 	b.iron_trap()            # small puddle with a Hot Iron behind it
+	b.chasm(280)             # a hole too wide to jump (needs a Rubber Sock)
+	b.hawks(1, 500)          # a Hanger Hawk gliding above 500 px of floor
 	b.drain()                # the exit, always last
 	return b.finish(2)       # you must bring 2 socks
 ```
@@ -169,15 +175,15 @@ godot --headless --fixed-fps 60 res://tests/unit_test.tscn
 
 | Test | What it does | Prints when all is fine |
 |---|---|---|
-| `unit_test` | About 180 small checks: level design rules, sounds and keys, saving (also with a broken save file), menus, and "what if" cases (Q with no socks, a sock falling into a hole, two Toe Socks at once...). | `UNIT TEST: ALL PASSED` |
-| `smoke_test` | Loads all 18 stages, then checks every mechanic, every enemy and all three bosses. | `SMOKE TEST: ALL PASSED` |
-| `campaign_bot` | A robot player. It plays all 15 normal levels from start to drain with the **real keys** (no cheating) and must bring every sock. If the bot can do it, the level is possible. | `CAMPAIGN BOT: ALL PASSED` |
+| `unit_test` | About 230 small checks: level design rules, sounds and keys, saving (also with a broken save file), menus, and "what if" cases (Q with no socks, a sock falling into a hole, two Toe Socks at once...). | `UNIT TEST: ALL PASSED` |
+| `smoke_test` | Loads all 24 stages, then checks every mechanic, every enemy and all four bosses. | `SMOKE TEST: ALL PASSED` |
+| `campaign_bot` | A robot player. It plays all 20 normal levels from start to drain with the **real keys** (no cheating) and must bring every sock. If the bot can do it, the level is possible. | `CAMPAIGN BOT: ALL PASSED` |
 
 When a test finds a problem it prints a line starting with `FAIL` that says what went wrong.
 The bot also prints how long each level took and how many times it got bonked.
 
 ## Ideas for what to add next
 
-1. **A fourth world** with a new sock type (for example a Rubber Sock that bounces you high).
-2. **Secret socks** hidden off the main path, and a reward for collecting all 54 stars.
+1. **Secret socks** hidden off the main path, and a reward for collecting all 72 stars.
+2. **A bot that fights the bosses** with real keys (today the boss tests take shortcuts).
 3. **A pause menu** with volume sliders and key rebinding.

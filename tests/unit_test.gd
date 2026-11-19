@@ -21,6 +21,7 @@ const Bunny = preload("res://scripts/lint_bunny.gd")
 const W := SockTypes.Kind.WOOL
 const T := SockTypes.Kind.TOE
 const G := SockTypes.Kind.GYM
+const R := SockTypes.Kind.RUBBER
 const TEST_SAVE := "user://unit_test_save.json"
 
 var failures: Array[String] = []
@@ -49,6 +50,7 @@ func _run() -> void:
 	await _test_box_rules()
 	await _test_enemy_corner_cases()
 	await _test_drain_rules()
+	await _test_rubber_corner_cases()
 
 	print("")
 	if failures.is_empty():
@@ -229,7 +231,7 @@ func _test_sounds_and_keys() -> void:
 	_check(actions.size() >= 10, "found the keys used by the code (%d)" % actions.size())
 	for action in actions:
 		_check(InputMap.has_action(action), "key action '%s' (used in %s) exists" % [action, actions[action]])
-	for action in ["move_left", "move_right", "jump", "recruit", "command", "pick_next", "pick_wool", "pick_toe", "pick_gym", "restart", "mute"]:
+	for action in ["move_left", "move_right", "jump", "recruit", "command", "pick_next", "pick_wool", "pick_toe", "pick_gym", "pick_rubber", "restart", "mute"]:
 		_check(InputMap.has_action(action) and not InputMap.action_get_events(action).is_empty(), "'%s' has a key" % action)
 
 	# Playing a sound that does not exist must not crash.
@@ -300,6 +302,22 @@ func _test_saving() -> void:
 	GameState.load_game()
 	_check(GameState.total_stars() == 0 and not GameState.seen_intro, "reset_progress erases everything")
 
+	# Stories between worlds and at the end
+	var worlds_seen := 0
+	for i in GameState.levels.size():
+		GameState.current = i
+		var story: Dictionary = GameState.next_story()
+		var last: bool = i == GameState.levels.size() - 1
+		var new_world: bool = not last and GameState.levels[i + 1]["world"] != GameState.levels[i]["world"]
+		if new_world or last:
+			worlds_seen += 1
+			_check(not story.is_empty() and story["big"] != "", "a story is shown after %s" % GameState.levels[i]["id"])
+		else:
+			_check(story.is_empty(), "no story between %s and the next level" % GameState.levels[i]["id"])
+	_check(worlds_seen == 4, "4 worlds end with a story (%d)" % worlds_seen)
+	for w in GameState.levels.map(func(l): return l["world"]):
+		if not GameState.WORLD_NAMES.has(w):
+			_check(false, "world %d has a name" % w)
 	GameState.current = GameState.levels.size() - 1
 	_check(not GameState.has_next(), "the last level has no next level")
 	GameState.current = 0
@@ -851,6 +869,75 @@ func _test_drain_rules() -> void:
 		GameState.stars.erase(id)
 	else:
 		GameState.stars[id] = old
+
+
+func _test_rubber_corner_cases() -> void:
+	print("-- Rubber Sock corner cases")
+	var b := Builder.new("U-4", "Unit 4", 4)
+	b.start()
+	b.socks([R, R, G])
+	b.flat(600)
+	b.chasm(300)
+	b.flat(600)
+	b.drain()
+	await _load(b.finish(1))
+	var r1 = _sock(R, 0)
+	var r2 = _sock(R, 1)
+	player.add_to_army(r1)
+	player.add_to_army(r2)
+	player._set_pick(R)
+
+	# Press jump just before landing on the trampoline: still the BIG bounce.
+	_teleport(Vector2(700, 598))
+	player.facing = 1.0
+	await _wait(3)
+	player._command()
+	await _wait(60)
+	_teleport(r1.global_position + Vector2(0, -90))
+	var top := 9999.0
+	for i in 90:
+		if i == 10:
+			Input.action_press("jump")
+		await _wait(1)
+		top = minf(top, player.global_position.y)
+	Input.action_release("jump")
+	_check(600.0 - top > 380.0, "pressing jump while landing on a Rubber Sock keeps the big bounce (%d px)" % int(600.0 - top))
+	await _wait(40)
+
+	# Two Rubber Socks on top of each other: no endless bounce and no crash.
+	_teleport(Vector2(r1.global_position.x - 40.0, 598))
+	player.facing = 1.0
+	await _wait(3)
+	player._command()
+	await _wait(80)
+	_check(r2.state == r2.State.PLACED, "a second Rubber Sock lands next to or on the first one")
+	var bounces := 0
+	_teleport(r2.global_position + Vector2(0, -60))
+	var going_up := false
+	for i in 300:
+		await _wait(1)
+		if player.velocity.y < -900.0 and not going_up:
+			bounces += 1
+		going_up = player.velocity.y < -900.0
+	_check(bounces >= 1, "the hero bounces on the pile (%d bounces in 5 s)" % bounces)
+	player._try_recruit()
+	await _wait(70)
+	_check(player.army.size() == 2, "both Rubber Socks come back")
+
+	# A Rubber Sock dropped INTO the chasm can be called back.
+	var edge: float = 260.0 + 3 * 120.0 + 600.0 + 220.0
+	_teleport(Vector2(edge - 30.0, 598))
+	player.facing = 1.0
+	await _wait(3)
+	player._command()
+	await _wait(200)
+	_check(r1.global_position.y > 900.0 and r1.global_position.y < 2000.0, "a Rubber Sock dropped into a chasm stops falling")
+	player._try_recruit()
+	await _wait(70)
+	_check(r1 in player.army, "and the whistle brings it back")
+	_check(not r1.is_trampoline() and not r2.is_trampoline(), "a sock in the army is not a trampoline")
+	player._set_pick(R)
+	await _unload()
 
 
 # ---------------- Helpers ----------------

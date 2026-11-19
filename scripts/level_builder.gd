@@ -22,7 +22,7 @@ var gy := 600.0      # ground height at the cursor
 var _last_cp := -9999.0
 var _tint := 0
 # How many socks of each kind the player can have by now (to catch design mistakes).
-var _have := {SockTypes.Kind.WOOL: 0, SockTypes.Kind.TOE: 0, SockTypes.Kind.GYM: 0}
+var _have := {SockTypes.Kind.WOOL: 0, SockTypes.Kind.TOE: 0, SockTypes.Kind.GYM: 0, SockTypes.Kind.RUBBER: 0}
 
 
 func _init(id: String, title: String, world: int) -> void:
@@ -55,7 +55,7 @@ func _cp() -> void:
 
 
 func _total_socks() -> int:
-	return _have[SockTypes.Kind.WOOL] + _have[SockTypes.Kind.TOE] + _have[SockTypes.Kind.GYM]
+	return _have[SockTypes.Kind.WOOL] + _have[SockTypes.Kind.TOE] + _have[SockTypes.Kind.GYM] + _have[SockTypes.Kind.RUBBER]
 
 
 func _require(ok: bool, what: String) -> void:
@@ -165,12 +165,18 @@ func bunnies(count := 1, width := 450.0) -> void:
 
 # The ground goes UP. 100 = just jump. 160 = needs 1 sock as a step.
 # 200 = 1 Toe Sock.  280 = 2 Toe Socks.  360 = 3 Toe Socks.
+# A Rubber Sock (trampoline) can replace the Toe Socks, and 400 needs one.
 func wall(height: float) -> void:
 	var toes: int = _have[SockTypes.Kind.TOE]
-	if height > 300.0:
-		_require(toes >= 3, "wall(360) needs 3 Toe Socks")
+	var rubber: bool = _have[SockTypes.Kind.RUBBER] >= 1
+	if height > 410.0:
+		_require(false, "walls higher than 400 are impossible")
+	elif height > 370.0:
+		_require(rubber, "wall(400) needs a Rubber Sock")
+	elif height > 300.0:
+		_require(toes >= 3 or rubber, "wall(360) needs 3 Toe Socks or a Rubber Sock")
 	elif height > 220.0:
-		_require(toes >= 2, "wall(280) needs 2 Toe Socks")
+		_require(toes >= 2 or rubber, "wall(280) needs 2 Toe Socks or a Rubber Sock")
 	elif height > 170.0:
 		_require(toes >= 1 or _total_socks() >= 3, "wall(200) needs a Toe Sock or 3 socks")
 	elif height > 120.0:
@@ -184,6 +190,27 @@ func wall(height: float) -> void:
 	# A safe ledge on top: no enemy may wait right where the hero lands.
 	_floor(x, SAFE_LEDGE)
 	x += SAFE_LEDGE
+
+
+# A hole too wide to jump (up to 300 px). Drop a Rubber Sock near the edge,
+# bounce on it and fly over. The 220 px of floor before it gives room to aim.
+func chasm(width := 280.0) -> void:
+	_piece("chasm")
+	_require(_have[SockTypes.Kind.RUBBER] >= 1, "chasm needs a Rubber Sock")
+	_require(width <= 300.0, "a chasm can be at most 300 wide")
+	_cp()
+	_floor(x, 220.0)
+	x += 220.0 + width
+
+
+# Hanger Hawks gliding high above the floor.
+func hawks(count := 1, width := 500.0) -> void:
+	_piece("hawks")
+	_cp()
+	_floor(x, width)
+	for i in count:
+		put_enemy("hanger", Vector2(x + width * (i + 1) / (count + 1), gy - 240.0), x + 60.0, x + width - 60.0)
+	x += width
 
 
 # The ground goes DOWN (just walk off the edge).

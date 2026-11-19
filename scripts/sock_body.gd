@@ -120,6 +120,11 @@ func _draw_pattern(info: Dictionary, w: float) -> void:
 		"gym":
 			for i in 2:
 				draw_rect(Rect2(-w, -42.0 + i * 6.0, w * 2.0, 3.0), colors[0])
+		"rubber":
+			# a shiny stripe (rubber is glossy) and two springy rings
+			draw_rect(Rect2(-w * 0.55, -42.0, 3.5, 30.0), Color(colors[0], 0.8))
+			for i in 2:
+				draw_rect(Rect2(-w, -40.0 + i * 9.0, w * 2.0, 2.5), colors[1])
 		"dots":
 			var spots := [Vector2(-0.5, -40), Vector2(0.5, -27), Vector2(-0.4, -20), Vector2(0.1, -9), Vector2(1.3, -6)]
 			for s in spots:

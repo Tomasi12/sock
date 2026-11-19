@@ -25,12 +25,13 @@ const GRAVITY := 1500.0
 const LAYER_TERRAIN := 1
 const LAYER_PROPS := 16
 const THROW_VELOCITY := Vector2(330, -430)
+const DROP_VELOCITY := Vector2(120, -250)  # a Rubber Sock is only dropped in front of you
 const WALK_SPEED := 110.0
 const STEP_HEIGHT := 75.0  # distance between two Toe Socks on a wall
 const LOST_Y := 1200.0     # below this a sock has fallen out of the world
 
 # @export makes the value editable in the Godot Inspector.
-@export_enum("Hero", "Wool", "Toe", "Gym") var kind: int = SockTypes.Kind.WOOL
+@export_enum("Hero", "Wool", "Toe", "Gym", "Rubber") var kind: int = SockTypes.Kind.WOOL
 
 var state: int = State.IDLE
 var player = null
@@ -262,10 +263,25 @@ func command(direction: float, from_pos: Vector2) -> void:
 		state = State.WALK
 		_timer = 3.5
 		velocity = Vector2(0, -150)
+	elif kind == SockTypes.Kind.RUBBER:
+		# A Rubber Sock plops down just in front of you: a trampoline!
+		state = State.THROWN
+		velocity = Vector2(DROP_VELOCITY.x * dir, DROP_VELOCITY.y)
 	else:
 		state = State.THROWN
 		velocity = Vector2(THROW_VELOCITY.x * dir, THROW_VELOCITY.y)
 	body.squash(Vector2(0.7, 1.3))
+
+
+# A Rubber Sock that has landed is a trampoline. The hero asks this when
+# landing on a sock.
+func is_trampoline() -> bool:
+	return kind == SockTypes.Kind.RUBBER and state == State.PLACED
+
+
+# Somebody bounced on us: squish!
+func boing() -> void:
+	body.squash(Vector2(1.6, 0.45), 0.6)
 
 
 func knock_away(direction: float) -> void:

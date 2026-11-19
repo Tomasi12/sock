@@ -5,7 +5,7 @@
 extends RefCounted
 
 # An enum is a list of names that stand for numbers (HERO = 0, WOOL = 1, ...).
-enum Kind { HERO, WOOL, TOE, GYM }
+enum Kind { HERO, WOOL, TOE, GYM, RUBBER }
 
 const DATA := {
 	Kind.HERO: {
@@ -39,5 +39,13 @@ const DATA := {
 		"pattern_colors": [Color("27ae60")],
 		"cuff": Color("27ae60"),
 		"half_width": 11.0,
+	},
+	Kind.RUBBER: {
+		"name": "Rubber Sock",
+		"body": Color("ff9f1a"),
+		"pattern": "rubber",
+		"pattern_colors": [Color("ffeaa7"), Color("e17055")],
+		"cuff": Color("e17055"),
+		"half_width": 12.0,
 	},
 }
